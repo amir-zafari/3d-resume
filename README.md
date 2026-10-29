@@ -4,29 +4,6 @@
 
 **مشاهده آنلاین:** https://amir-zafari.github.io/3d-resume/
 
-## اجرا روی سیستم
-
-```bash
-cd web
-npm install
-npm run dev      # http://localhost:5173
-npm run build    # خروجی در web/dist
-```
-
-با هر push روی شاخه `main`، سایت به‌صورت خودکار با GitHub Actions ساخته و روی GitHub Pages منتشر می‌شود (`.github/workflows/deploy.yml`).
-
-## تغییر محتوا
-
-| چه چیزی | کجا |
-| --- | --- |
-| متن رزومه (درباره من، مهارت‌ها، سوابق) | `web/src/data/resume.ts` |
-| برچسب‌ها و جایشان روی مدل | `web/src/scene/stickers.ts` |
-| نمونه‌کارها | `web/src/data/works.ts` |
-| بخش پایانی و نظر مشتری‌ها | `web/src/ui/Everyday.tsx` |
-| صفحه اول | `web/src/ui/Intro.tsx` |
-
-ترتیب آیتم‌های رزومه با عدد `focus` برچسب‌ها جور است: آیتم شماره N (از ۰) نمای نزدیک برچسبی است که `focus: N` دارد.
-
 ## ساخته‌شده با
 
 React · TypeScript · React Three Fiber · three.js · framer-motion · Vite
