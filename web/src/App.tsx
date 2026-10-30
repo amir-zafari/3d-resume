@@ -6,7 +6,6 @@ import Scene from './scene/Scene'
 import NoiseOverlay from './ui/NoiseOverlay'
 import Resume from './ui/Resume'
 import Works from './ui/Works'
-import { boot } from './scene/modelSource'
 import { ResumePreview } from './ui/ResumePreview'
 import Intro from './ui/Intro'
 import Everyday from './ui/Everyday'
@@ -38,7 +37,6 @@ function Hero({ cueOpacity }: { cueOpacity: MotionValue<number> }) {
 }
 
 function WebGLFallback() {
-  useEffect(() => boot.finish(), [])
   return (
     <div className="webgl-fallback" role="status">
       پیش‌نمایش سه‌بعدی در دسترس نیست؛ محتوای صفحه همچنان قابل مشاهده است.

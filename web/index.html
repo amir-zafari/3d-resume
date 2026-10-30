@@ -10,6 +10,93 @@
     <meta property="og:title" content="Amir Zafari | Web Developer Portfolio" />
     <meta property="og:description" content="WordPress, Laravel and AI automation portfolio." />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script>
+      // Starts the model download right away, in parallel with the app bundle, and drives the
+      // percentage. The app takes the downloaded model from window.__boot.model and calls
+      // appReady() once its code runs and finish() once the 3D scene has drawn.
+      // It sits at the top of <head> because a script after a stylesheet waits for that stylesheet,
+      // which delayed the model download by seconds on slow connections.
+      ;(function () {
+        var MODEL = './models/me.glb'
+        var FALLBACK_SIZE = 1300000 // only used when the server sends no Content-Length
+        var root = null
+        var arc = null
+        var label = null
+        var C = 2 * Math.PI * 34
+        var model = 0
+        var app = false
+        var done = false
+        var shown = 0
+  
+        var modelPromise = fetch(MODEL, { credentials: 'same-origin' }).then(function (res) {
+          if (!res.ok) throw new Error('model ' + res.status)
+          var total = Number(res.headers.get('content-length')) || FALLBACK_SIZE
+          if (!res.body || !res.body.getReader) return res.blob()
+          var reader = res.body.getReader()
+          var chunks = []
+          var received = 0
+          return (function pump() {
+            return reader.read().then(function (step) {
+              if (step.done) return new Blob(chunks, { type: 'model/gltf-binary' })
+              chunks.push(step.value)
+              received += step.value.length
+              model = Math.min(1, received / total)
+              return pump()
+            })
+          })()
+        }).then(function (blob) {
+          model = 1
+          return blob
+        })
+        // The app falls back to loading the file itself if this fails; don't report it twice.
+        modelPromise.catch(function () {})
+  
+        function finish() {
+          done = true
+        }
+        // Never trap the visitor behind the loader if something goes wrong.
+        setTimeout(finish, 45000)
+  
+        // Model bytes are 0–75 %, the app code 15 % and building the scene the rest. Between real
+        // updates the number creeps a little toward the next milestone so it never looks frozen.
+        function tick() {
+          // The loader markup is parsed after this script runs; pick it up once it exists.
+          if (!root) {
+            root = document.getElementById('boot-loader')
+            if (!root) return requestAnimationFrame(tick)
+            arc = root.querySelector('.boot-arc')
+            label = root.querySelector('.boot-pct')
+            arc.style.strokeDasharray = C
+          }
+          var target = done ? 100 : model * 75 + (app ? 15 : 0)
+          var ceiling = done ? 100 : model < 1 ? target + 5 : app ? 97 : 88
+          if (shown < target) shown += Math.max(0.4, (target - shown) * 0.12)
+          else if (shown < ceiling) shown += (ceiling - shown) * 0.008
+          shown = Math.min(shown, Math.max(target, ceiling))
+          var value = Math.floor(shown)
+          arc.style.strokeDashoffset = C * (1 - shown / 100)
+          label.textContent = value.toLocaleString('fa-IR') + '٪'
+          root.setAttribute('aria-valuenow', value)
+          if (done && shown >= 100) {
+            root.classList.add('is-hidden')
+            setTimeout(function () {
+              root.remove()
+            }, 700)
+            return
+          }
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+  
+        window.__boot = {
+          model: modelPromise,
+          appReady: function () {
+            app = true
+          },
+          finish: finish,
+        }
+      })()
+    </script>
     <!-- Self-hosted Vazirmatn (OFL): Google Fonts is slow or blocked for many visitors in Iran and
          its stylesheet held up the first paint. -->
     <link rel="preload" href="./fonts/vazirmatn-arabic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
@@ -100,84 +187,6 @@
       </div>
       <span class="boot-label">در حال آماده‌سازی رزومه…</span>
     </div>
-    <script>
-      // Starts the model download right away, in parallel with the app bundle, and drives the
-      // percentage. The app takes the downloaded model from window.__boot.model and calls
-      // appReady() once its code runs and finish() once the 3D scene has drawn.
-      ;(function () {
-        var MODEL = './models/me.glb'
-        var FALLBACK_SIZE = 1300000 // only used when the server sends no Content-Length
-        var root = document.getElementById('boot-loader')
-        var arc = root.querySelector('.boot-arc')
-        var label = root.querySelector('.boot-pct')
-        var C = 2 * Math.PI * 34
-        arc.style.strokeDasharray = C
-        var model = 0
-        var app = false
-        var done = false
-        var shown = 0
-
-        var modelPromise = fetch(MODEL, { credentials: 'same-origin' }).then(function (res) {
-          if (!res.ok) throw new Error('model ' + res.status)
-          var total = Number(res.headers.get('content-length')) || FALLBACK_SIZE
-          if (!res.body || !res.body.getReader) return res.blob()
-          var reader = res.body.getReader()
-          var chunks = []
-          var received = 0
-          return (function pump() {
-            return reader.read().then(function (step) {
-              if (step.done) return new Blob(chunks, { type: 'model/gltf-binary' })
-              chunks.push(step.value)
-              received += step.value.length
-              model = Math.min(1, received / total)
-              return pump()
-            })
-          })()
-        }).then(function (blob) {
-          model = 1
-          return blob
-        })
-        // The app falls back to loading the file itself if this fails; don't report it twice.
-        modelPromise.catch(function () {})
-
-        function finish() {
-          done = true
-        }
-        // Never trap the visitor behind the loader if something goes wrong.
-        setTimeout(finish, 45000)
-
-        // Model bytes are 0–75 %, the app code 15 % and building the scene the rest. Between real
-        // updates the number creeps a little toward the next milestone so it never looks frozen.
-        function tick() {
-          var target = done ? 100 : model * 75 + (app ? 15 : 0)
-          var ceiling = done ? 100 : model < 1 ? target + 5 : app ? 97 : 88
-          if (shown < target) shown += Math.max(0.4, (target - shown) * 0.12)
-          else if (shown < ceiling) shown += (ceiling - shown) * 0.008
-          shown = Math.min(shown, Math.max(target, ceiling))
-          var value = Math.floor(shown)
-          arc.style.strokeDashoffset = C * (1 - shown / 100)
-          label.textContent = value.toLocaleString('fa-IR') + '٪'
-          root.setAttribute('aria-valuenow', value)
-          if (done && shown >= 100) {
-            root.classList.add('is-hidden')
-            setTimeout(function () {
-              root.remove()
-            }, 700)
-            return
-          }
-          requestAnimationFrame(tick)
-        }
-        requestAnimationFrame(tick)
-
-        window.__boot = {
-          model: modelPromise,
-          appReady: function () {
-            app = true
-          },
-          finish: finish,
-        }
-      })()
-    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
