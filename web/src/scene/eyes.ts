@@ -27,6 +27,10 @@ export interface PaintedEye {
   texture: THREE.CanvasTexture
   original: HTMLCanvasElement
   outline: Path2D
+  // Blurred inner edge of the opening, drawn once: a canvas blur filter is too slow to run every frame.
+  edge: HTMLCanvasElement
+  // Last painted state, so a still eye doesn't repaint and re-upload its texture.
+  last: { z: number; y: number; blink: number }
   // Maps model-space (z, y) on the eye to canvas pixels: [a, b, c, d, e, f] for ctx.setTransform.
   transform: [number, number, number, number, number, number]
   center: THREE.Vector3
@@ -162,6 +166,16 @@ function buildEyes(mesh: THREE.Mesh): PaintedEye[] {
     outline.forEach(([x, y], i) => (i ? path.lineTo((x / 5) * SCALE, (y / 5) * SCALE) : path.moveTo((x / 5) * SCALE, (y / 5) * SCALE)))
     path.closePath()
 
+    const edge = document.createElement('canvas')
+    edge.width = canvas.width
+    edge.height = canvas.height
+    const ectx = edge.getContext('2d')!
+    ectx.clip(path)
+    ectx.strokeStyle = 'rgba(70, 38, 24, 0.4)'
+    ectx.lineWidth = SCALE * 1.3
+    ectx.filter = `blur(${SCALE * 0.6}px)`
+    ectx.stroke(path)
+
     const transform = fitTransform(samples)
     // Invert the fit to find the opening's extent in model space.
     const inv = new THREE.Matrix3().set(transform[0], transform[2], transform[4], transform[1], transform[3], transform[5], 0, 0, 1).invert()
@@ -218,6 +232,8 @@ function buildEyes(mesh: THREE.Mesh): PaintedEye[] {
       texture,
       original,
       outline: path,
+      edge,
+      last: { z: NaN, y: NaN, blink: NaN },
       transform,
       center: new THREE.Vector3(EYE_DEPTH_X, (yMin + yMax) / 2, (zMin + zMax) / 2),
       irisRadius,
@@ -232,6 +248,17 @@ function buildEyes(mesh: THREE.Mesh): PaintedEye[] {
 // gaze: direction in model space; blink: 0 open → 1 closed.
 export function paintEye(eye: PaintedEye, gaze: THREE.Vector3, blink: number) {
   const { ctx, transform: m, center, irisRadius: r } = eye
+  const dir = gaze.clone().normalize()
+  const iz = center.z + THREE.MathUtils.clamp(Math.atan2(dir.z, dir.x) * r * 1.6, -eye.travel.z, eye.travel.z)
+  const iy = center.y + THREE.MathUtils.clamp(Math.atan2(dir.y, dir.x) * r * 1.8, -eye.travel.y, eye.travel.y)
+  // Real upper lids follow a downward glance a little.
+  blink = Math.max(blink, THREE.MathUtils.clamp(-Math.atan2(dir.y, dir.x) * 0.7, 0, 0.28))
+  const still = r * 0.004
+  if (Math.abs(iz - eye.last.z) < still && Math.abs(iy - eye.last.y) < still && Math.abs(blink - eye.last.blink) < 0.002) return
+  eye.last.z = iz
+  eye.last.y = iy
+  eye.last.blink = blink
+
   // Only the opening is painted; everything else stays transparent so the face shows through untouched.
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
@@ -247,12 +274,7 @@ export function paintEye(eye: PaintedEye, gaze: THREE.Vector3, blink: number) {
   ctx.fillStyle = sclera
   ctx.fillRect(center.z - span, center.y - span, span * 2, span * 2)
 
-  const dir = gaze.clone().normalize()
-  const iz = center.z + THREE.MathUtils.clamp(Math.atan2(dir.z, dir.x) * r * 1.6, -eye.travel.z, eye.travel.z)
-  const iy = center.y + THREE.MathUtils.clamp(Math.atan2(dir.y, dir.x) * r * 1.8, -eye.travel.y, eye.travel.y)
   if (IRIS) ctx.drawImage(IRIS, iz - r, iy - r, r * 2, r * 2)
-  // Real upper lids follow a downward glance a little.
-  blink = Math.max(blink, THREE.MathUtils.clamp(-Math.atan2(dir.y, dir.x) * 0.7, 0, 0.28))
   // Catch-light, fixed relative to the key light (up and to the side).
   ctx.fillStyle = 'rgba(255,255,255,0.75)'
   ctx.beginPath()
@@ -276,13 +298,8 @@ export function paintEye(eye: PaintedEye, gaze: THREE.Vector3, blink: number) {
   ctx.restore()
 
   // Soft inner edge so the repainted opening blends into the lids.
-  ctx.save()
-  ctx.clip(eye.outline)
-  ctx.strokeStyle = 'rgba(70, 38, 24, 0.4)'
-  ctx.lineWidth = SCALE * 1.3
-  ctx.filter = `blur(${SCALE * 0.6}px)`
-  ctx.stroke(eye.outline)
-  ctx.restore()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(eye.edge, 0, 0)
 
   eye.texture.needsUpdate = true
 }
