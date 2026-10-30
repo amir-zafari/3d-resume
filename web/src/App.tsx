@@ -94,6 +94,8 @@ export default function App() {
           camera={{ position: [0, 5, 19], fov: 39, near: 0.1, far: 500 }}
           gl={{ antialias: false, stencil: false, depth: true, powerPreference: lowPowerRendering ? 'low-power' : 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
           fallback={<WebGLFallback />}
+          // The canvas is fixed, so scrolling never moves it: skip re-measuring on every scroll event.
+          resize={{ scroll: false }}
         >
           <color attach="background" args={['#97ab8c']} />
           <Suspense fallback={null}>

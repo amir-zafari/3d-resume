@@ -42,7 +42,13 @@ canvas {
 /* ---------- 固定 3D 背景 + 滚动渐暗 + 内容层 ---------- */
 .scene-bg {
   position: fixed;
-  inset: 0;
+  /* Sized to the largest viewport, not inset: 0, so the phone's address bar hiding on the first
+     scroll doesn't resize the canvas (a resize clears it and rebuilds every render target). */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100lvh;
   z-index: 0;
   pointer-events: none; /* 事件穿透，滚动与视差互不干扰 */
 }
