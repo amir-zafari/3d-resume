@@ -6,7 +6,7 @@ import Scene from './scene/Scene'
 import NoiseOverlay from './ui/NoiseOverlay'
 import Resume from './ui/Resume'
 import Works from './ui/Works'
-import LoadingScreen from './ui/LoadingScreen'
+import { boot } from './scene/modelSource'
 import { ResumePreview } from './ui/ResumePreview'
 import Intro from './ui/Intro'
 import Everyday from './ui/Everyday'
@@ -38,6 +38,7 @@ function Hero({ cueOpacity }: { cueOpacity: MotionValue<number> }) {
 }
 
 function WebGLFallback() {
+  useEffect(() => boot.finish(), [])
   return (
     <div className="webgl-fallback" role="status">
       پیش‌نمایش سه‌بعدی در دسترس نیست؛ محتوای صفحه همچنان قابل مشاهده است.
@@ -85,9 +86,6 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      {/* 加载遮罩：模型全部加载完成前覆盖全屏，完成后淡出 */}
-      <LoadingScreen />
-
       {/* 固定的 3D 背景 */}
       <div className="scene-bg">
         <Canvas

@@ -8,8 +8,7 @@ import { FOCUS_POINTS } from '../data/focusPoints'
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'
 import { STICKERS, makeStickerTexture } from './stickers'
 import { createPaintedEyes, paintEye } from './eyes'
-
-useGLTF.preload(`${import.meta.env.BASE_URL}models/me.glb`)
+import { boot, useModelUrl } from './modelSource'
 
 const POINTS = FOCUS_POINTS as readonly string[]
 const NODE_LINE = 0.3
@@ -159,7 +158,7 @@ function Lights({ lowPower }: { lowPower: boolean }) {
 }
 
 function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<THREE.Vector3>; frameRef: MutableRefObject<number> }) {
-  const { scene } = useGLTF(`${import.meta.env.BASE_URL}models/me.glb`)
+  const { scene } = useGLTF(useModelUrl())
   const { model, offset, scale, wide, narrow, eyes, mesh, pivot } = useMemo(() => {
     const clone = scene.clone(true)
     clone.traverse((object: THREE.Object3D) => {
@@ -190,6 +189,13 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
       narrow: buildPresets(anchors, offset, scale, true),
     }
   }, [scene])
+
+  // Lift the loading screen once the model has actually been drawn (the first frames compile shaders).
+  const framesDrawn = useRef(0)
+  useFrame(() => {
+    framesDrawn.current += 1
+    if (framesDrawn.current === 3) boot.finish()
+  })
 
   const get = useThree((state) => state.get)
   const scrollTargets = useRef<HTMLElement[] | null>(null)

@@ -10,14 +10,174 @@
     <meta property="og:title" content="Amir Zafari | Web Developer Portfolio" />
     <meta property="og:description" content="WordPress, Laravel and AI automation portfolio." />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Mansalva&family=Cormorant+Upright:wght@400;500;600&family=Vazirmatn:wght@300;400;500;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Self-hosted Vazirmatn (OFL): Google Fonts is slow or blocked for many visitors in Iran and
+         its stylesheet held up the first paint. -->
+    <link rel="preload" href="./fonts/vazirmatn-arabic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      @font-face {
+        font-family: 'Vazirmatn';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 100 900;
+        src: url(./fonts/vazirmatn-arabic-wght-normal.woff2) format('woff2-variations');
+        unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC;
+      }
+      @font-face {
+        font-family: 'Vazirmatn';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 100 900;
+        src: url(./fonts/vazirmatn-latin-wght-normal.woff2) format('woff2-variations');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      /* Loading screen: plain HTML so it shows before the app's JavaScript has downloaded. */
+      #boot-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #0b1120;
+        color: #f7f4ee;
+        font-family: 'Vazirmatn', Tahoma, system-ui, sans-serif;
+        transition: opacity 0.6s ease;
+      }
+      #boot-loader.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .boot-ring {
+        position: relative;
+        width: 96px;
+        height: 96px;
+      }
+      .boot-ring svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        transform: rotate(-90deg);
+      }
+      .boot-ring circle {
+        fill: none;
+        stroke-width: 3;
+      }
+      .boot-track {
+        stroke: rgba(244, 241, 234, 0.12);
+      }
+      .boot-arc {
+        stroke: #d8c39b;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 8px rgba(216, 195, 155, 0.5));
+      }
+      .boot-pct {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .boot-label {
+        color: rgba(231, 228, 222, 0.62);
+        font-size: 14px;
+      }
+    </style>
   </head>
   <body>
+    <div id="boot-loader" role="progressbar" aria-label="در حال بارگذاری" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="boot-ring">
+        <svg viewBox="0 0 80 80" aria-hidden="true">
+          <circle class="boot-track" cx="40" cy="40" r="34" />
+          <circle class="boot-arc" cx="40" cy="40" r="34" />
+        </svg>
+        <span class="boot-pct">۰٪</span>
+      </div>
+      <span class="boot-label">در حال آماده‌سازی رزومه…</span>
+    </div>
+    <script>
+      // Starts the model download right away, in parallel with the app bundle, and drives the
+      // percentage. The app takes the downloaded model from window.__boot.model and calls
+      // appReady() once its code runs and finish() once the 3D scene has drawn.
+      ;(function () {
+        var MODEL = './models/me.glb'
+        var FALLBACK_SIZE = 1300000 // only used when the server sends no Content-Length
+        var root = document.getElementById('boot-loader')
+        var arc = root.querySelector('.boot-arc')
+        var label = root.querySelector('.boot-pct')
+        var C = 2 * Math.PI * 34
+        arc.style.strokeDasharray = C
+        var model = 0
+        var app = false
+        var done = false
+        var shown = 0
+
+        var modelPromise = fetch(MODEL, { credentials: 'same-origin' }).then(function (res) {
+          if (!res.ok) throw new Error('model ' + res.status)
+          var total = Number(res.headers.get('content-length')) || FALLBACK_SIZE
+          if (!res.body || !res.body.getReader) return res.blob()
+          var reader = res.body.getReader()
+          var chunks = []
+          var received = 0
+          return (function pump() {
+            return reader.read().then(function (step) {
+              if (step.done) return new Blob(chunks, { type: 'model/gltf-binary' })
+              chunks.push(step.value)
+              received += step.value.length
+              model = Math.min(1, received / total)
+              return pump()
+            })
+          })()
+        }).then(function (blob) {
+          model = 1
+          return blob
+        })
+        // The app falls back to loading the file itself if this fails; don't report it twice.
+        modelPromise.catch(function () {})
+
+        function finish() {
+          done = true
+        }
+        // Never trap the visitor behind the loader if something goes wrong.
+        setTimeout(finish, 45000)
+
+        // Model bytes are 0–75 %, the app code 15 % and building the scene the rest. Between real
+        // updates the number creeps a little toward the next milestone so it never looks frozen.
+        function tick() {
+          var target = done ? 100 : model * 75 + (app ? 15 : 0)
+          var ceiling = done ? 100 : model < 1 ? target + 5 : app ? 97 : 88
+          if (shown < target) shown += Math.max(0.4, (target - shown) * 0.12)
+          else if (shown < ceiling) shown += (ceiling - shown) * 0.008
+          shown = Math.min(shown, Math.max(target, ceiling))
+          var value = Math.floor(shown)
+          arc.style.strokeDashoffset = C * (1 - shown / 100)
+          label.textContent = value.toLocaleString('fa-IR') + '٪'
+          root.setAttribute('aria-valuenow', value)
+          if (done && shown >= 100) {
+            root.classList.add('is-hidden')
+            setTimeout(function () {
+              root.remove()
+            }, 700)
+            return
+          }
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+
+        window.__boot = {
+          model: modelPromise,
+          appReady: function () {
+            app = true
+          },
+          finish: finish,
+        }
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
