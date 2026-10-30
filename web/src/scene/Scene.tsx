@@ -18,6 +18,9 @@ const MODEL_BOTTOM = -3.1
 const BASE_YAW = -Math.PI / 2
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
 const HEAD_PIVOT = new THREE.Vector3(0.06, 0.17, 0)
+const NARROW_FOV = 30
+// Sticker height on phone screens in NDC (+1 = top edge): 0.5 is a quarter of the way down.
+const NARROW_STICKER_Y = 0.5
 
 type CameraPreset = {
   position: [number, number, number]
@@ -81,10 +84,13 @@ function toWorld(local: THREE.Vector3, offset: THREE.Vector3, scale: number) {
 
 function stickerPreset(point: THREE.Vector3, normal: THREE.Vector3, index: number, narrow: boolean): CameraPreset {
   if (narrow) {
-    // Phones: sticker centred in the top part of the screen, above the timeline card.
-    const target = point.clone().add(new THREE.Vector3(0, -0.75, 0))
-    const position = target.clone().add(normal.clone().multiplyScalar(3.2)).add(new THREE.Vector3(0, 0.15, 0))
-    return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: 30 }
+    // Phones: the timeline card fills the lower half, so the sticker sits in the upper quarter.
+    // Aiming below it by (screen offset × visible half-height) puts it there at any distance.
+    const distance = 3.4
+    const drop = distance * Math.tan(THREE.MathUtils.degToRad(NARROW_FOV / 2)) * NARROW_STICKER_Y
+    const target = point.clone().add(new THREE.Vector3(0, -drop, 0))
+    const position = target.clone().add(normal.clone().multiplyScalar(distance))
+    return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: NARROW_FOV }
   }
   // Desktop: aim to the right of the sticker so it sits left of centre, clear of the timeline text.
   const target = point.clone().add(new THREE.Vector3(0.42, 0, 0))
@@ -225,7 +231,10 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
       } else {
         for (let index = 0; index < tops.length - 1; index += 1) {
           if (referenceLine <= tops[index + 1]) {
-            targetIndex = index + 1 + (referenceLine - tops[index]) / Math.max(1, tops[index + 1] - tops[index])
+            const t = (referenceLine - tops[index]) / Math.max(1, tops[index + 1] - tops[index])
+            // Phones scroll in flicks: hold each sticker for most of its entry and move between them
+            // near the boundary, so the camera rests on a sticker instead of drifting between two.
+            targetIndex = index + 1 + (isNarrow ? THREE.MathUtils.smootherstep(t, 0.35, 0.95) : t)
             break
           }
         }

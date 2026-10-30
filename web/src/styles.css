@@ -498,6 +498,18 @@ canvas {
   padding-bottom: 28vh;
 }
 
+/* Portrait screens (Scene.tsx switches to the phone camera below aspect 0.85): the card starts
+   lower so the sticker the camera flies to stays visible above it. */
+@media (max-aspect-ratio: 17/20) {
+  .tl-entry {
+    padding-top: 26vh;
+    padding-bottom: 8vh;
+  }
+  .tl-dot {
+    top: calc(26vh + 6px);
+  }
+}
+
 .tl-dot {
   position: absolute;
   left: 0;
