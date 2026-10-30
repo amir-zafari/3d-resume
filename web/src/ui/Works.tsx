@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState, type Ref } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type Ref } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
 import { WORKS, type WorkListItem, type WorkSection, type WorksCopy } from '../data/works'
 import { getWorkDoc } from '../data/workDocs'
 
 const EASE = [0.22, 1, 0.36, 1]
+const WorkMarkdown = lazy(() => import('./WorkMarkdown'))
 
 // 极简清单的一行：作品名靠左、数据(播放量/标签)靠右、发丝线分隔；整行可点开全屏详情
 function WorkLine({ item, onOpen }: { item: WorkListItem; onOpen: (item: WorkListItem) => void }) {
@@ -169,9 +167,9 @@ function WorkDetail({
 
           {doc && doc.body ? (
             <div className="wk-md">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                {doc.body}
-              </ReactMarkdown>
+              <Suspense fallback={null}>
+                <WorkMarkdown body={doc.body} />
+              </Suspense>
             </div>
           ) : (
             // 无 md：演示详情页支持的组件 —— 介绍文本 + 图片/视频占位 + 跳转按钮
@@ -208,6 +206,13 @@ export default function Works({ innerRef }: { innerRef: Ref<HTMLElement> }) {
   const count = sections.length
 
   const [active, setActive] = useState<WorkListItem | null>(null) // 当前打开详情的作品 item
+
+  // Fetch the Markdown chunk once the first load is long done, so opening a work doesn't wait on it
+  // but it also doesn't compete with the model for bandwidth.
+  useEffect(() => {
+    const timer = setTimeout(() => void import('./WorkMarkdown'), 20000)
+    return () => clearTimeout(timer)
+  }, [])
 
   // 竖滚 pin 转横移：测量整排卡片的实际可横移距离（px），竖滚进度 → 横移
   const galleryRef = useRef<HTMLDivElement>(null)
