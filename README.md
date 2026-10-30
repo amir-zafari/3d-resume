@@ -13,3 +13,4 @@ React · TypeScript · React Three Fiber · three.js · framer-motion · Vite
 - کد صحنه و ساختار اسکرول بر پایه پروژه متن‌باز [sen-3d-resume](https://github.com/dayinji/sen-3d-resume) از Sen Zheng (مجوز MIT) است؛ محتوا، مدل سه‌بعدی، برچسب‌ها و چشم‌های متحرک مخصوص این نسخه هستند.
 - مدل سه‌بعدی با [Tripo](https://www.tripo3d.ai/) از عکس خودم ساخته شده است.
 - لوگوهای برچسب‌ها از [Simple Icons](https://simpleicons.org/) (CC0)؛ نشان‌های تجاری متعلق به صاحبانشان هستند.
+- فونت [وزیرمتن](https://github.com/rastikerdar/vazirmatn) از صابر راستی‌کردار (مجوز SIL OFL 1.1) روی خود سایت میزبانی می‌شود.
