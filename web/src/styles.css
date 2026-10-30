@@ -1739,7 +1739,8 @@ html, body {
   justify-content: center;
   min-height: 100vh;
   min-height: 100svh;
-  padding: clamp(90px, 14vh, 150px) clamp(24px, 8vw, 128px) clamp(70px, 10vh, 110px);
+  /* The bottom padding keeps clear of the absolutely placed scroll cue (~100px tall, 28px up). */
+  padding: clamp(90px, 14vh, 150px) clamp(24px, 8vw, 128px) 136px;
   overflow: hidden;
   background: linear-gradient(190deg, #17251c 0%, #101a14 60%, #0b120e 100%);
   color: var(--ink);
@@ -1775,7 +1776,7 @@ html, body {
 .tl-links a:hover { color: var(--accent); }
 
 @media (max-width: 640px) {
-  .intro { padding: 96px 20px 90px; }
+  .intro { padding: 96px 20px 136px; }
   .intro-actions { flex-direction: column; }
   .intro-actions .everyday-btn { justify-content: center; }
 }
