@@ -190,11 +190,38 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
     }
   }, [scene])
 
-  // Lift the loading screen once the model has actually been drawn (the first frames compile shaders).
-  const framesDrawn = useRef(0)
-  useFrame(() => {
-    framesDrawn.current += 1
-    if (framesDrawn.current === 3) boot.finish()
+  // Keep the loading screen up until the GPU is really ready. three.js otherwise compiles shaders and
+  // uploads textures lazily, and on a real GPU the driver finishes that work in the background: the
+  // first frames return at once but the model only shows up a moment later, after the loader is gone.
+  // So upload every texture, wait for every shader to compile, then for frames to arrive at a steady
+  // rate again (the browser holds frames back while the GPU is busy).
+  const warmUp = useRef({ started: 0, compiled: false, steady: 0, done: false })
+  useFrame((state, delta) => {
+    const w = warmUp.current
+    if (w.done) return
+    if (!w.started) {
+      w.started = performance.now()
+      state.scene.traverse((object) => {
+        const materials = (object as THREE.Mesh).material
+        if (!materials) return
+        for (const material of Array.isArray(materials) ? materials : [materials]) {
+          for (const value of Object.values(material)) {
+            if ((value as THREE.Texture | null)?.isTexture) state.gl.initTexture(value as THREE.Texture)
+          }
+        }
+      })
+      const compiled = () => {
+        w.compiled = true
+      }
+      state.gl.compileAsync(state.scene, state.camera).then(compiled, compiled)
+      return
+    }
+    w.steady = w.compiled && delta < 0.05 ? w.steady + 1 : 0
+    // Slow machines may never reach a steady 20 fps: give up waiting after a few seconds.
+    if (w.steady >= 5 || performance.now() - w.started > 6000) {
+      w.done = true
+      boot.finish()
+    }
   })
 
   const get = useThree((state) => state.get)
