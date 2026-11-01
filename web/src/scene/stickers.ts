@@ -26,7 +26,7 @@ const ZONES: Record<ZoneName, { y: [number, number]; z: [number, number]; cols: 
 interface StickerDef {
   zone: ZoneName
   design: Design
-  // Index of the résumé entry (ui/Resume.tsx) whose close-up flies to this sticker.
+  // Id a tour step (data/tour.ts) uses to fly the camera to this sticker.
   focus?: number
   size?: number
 }
