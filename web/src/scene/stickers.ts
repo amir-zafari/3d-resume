@@ -4,6 +4,8 @@ import { siAndroid, siElementor, siJavascript, siLaravel, siN8n, siOpenai, siPhp
 type Design =
   | { kind: 'icon'; icon: SimpleIcon; bg?: string }
   | { kind: 'text'; label: string; bg: string; fg: string; sub?: string }
+  // A company logo from public/logos, fitted inside a wide (or, for square marks, round) sticker.
+  | { kind: 'logo'; src: string; bg: string; round?: boolean }
 
 // ---------------------------------------------------------------------------------------------
 // Where stickers can go. Coordinates are in the model's own space (face looks down +x):
@@ -33,6 +35,7 @@ interface StickerDef {
 
 const text = (label: string, bg: string, fg = '#ffffff', sub?: string): Design => ({ kind: 'text', label, bg, fg, sub })
 const icon = (i: SimpleIcon, bg?: string): Design => ({ kind: 'icon', icon: i, bg })
+const logo = (file: string, bg = '#ffffff', round = false): Design => ({ kind: 'logo', src: `${import.meta.env.BASE_URL}logos/${file}`, bg, round })
 
 // ---------------------------------------------------------------------------------------------
 // The stickers. To change one: edit its label/colour/icon. To add: append a line with a zone.
@@ -60,11 +63,11 @@ const STICKER_LIST: StickerDef[] = [
   { zone: 'chest', design: icon(siTelegram) },
 
   // سوابق کاری — the companies I have worked for, on the work shoulder.
-  { zone: 'workShoulder', design: text('BARCELON', '#111111', '#f5c518', 'GROUP'), focus: 14 },
-  { zone: 'workShoulder', design: text('ARNIK', '#0f766e', '#ffffff', 'WEB'), focus: 15 },
-  { zone: 'workShoulder', design: text('VAKILBASHI', '#1d3557', '#ffffff'), focus: 16 },
-  { zone: 'workShoulder', design: text('SEE5', '#ea580c', '#ffffff', 'SITE BUILDER'), focus: 17 },
-  { zone: 'workShoulder', design: text('EIGHT', '#7b2cbf', '#ffffff', 'MARKETING'), focus: 18 },
+  { zone: 'workShoulder', design: logo('barcelon.png', '#111111'), focus: 14 },
+  { zone: 'workShoulder', design: logo('arnik.png', '#ffffff', true), focus: 15 },
+  { zone: 'workShoulder', design: logo('vakilbashi.svg'), focus: 16 },
+  { zone: 'workShoulder', design: logo('see5.png', '#ffffff', true), focus: 17 },
+  { zone: 'workShoulder', design: logo('eight.svg'), focus: 18 },
 ]
 
 export interface Sticker {
@@ -124,7 +127,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 // Draws a die-cut vinyl sticker: thick white border, soft shadow, colored face.
 export function makeStickerTexture(design: Design): { texture: THREE.CanvasTexture; aspect: number } {
-  const isText = design.kind === 'text'
+  const isText = design.kind === 'text' || (design.kind === 'logo' && !design.round)
   const W = 512
   const H = isText ? 300 : 512
   const canvas = document.createElement('canvas')
@@ -137,65 +140,90 @@ export function makeStickerTexture(design: Design): { texture: THREE.CanvasTextu
     else { ctx.beginPath(); ctx.arc(W / 2, H / 2, W / 2 - pad, 0, Math.PI * 2) }
   }
 
-  ctx.save()
-  ctx.shadowColor = 'rgba(0,0,0,0.35)'
-  ctx.shadowBlur = 10
-  ctx.shadowOffsetY = 3
-  shape()
-  ctx.fillStyle = '#ffffff'
-  ctx.fill()
-  ctx.restore()
+  // Drawn again once a logo's image has loaded.
+  const paint = (image?: HTMLImageElement) => {
+    ctx.clearRect(0, 0, W, H)
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.35)'
+    ctx.shadowBlur = 10
+    ctx.shadowOffsetY = 3
+    shape()
+    ctx.fillStyle = '#ffffff'
+    ctx.fill()
+    ctx.restore()
 
-  ctx.save()
-  ctx.translate(OUTLINE, OUTLINE)
-  ctx.scale((W - OUTLINE * 2) / W, (H - OUTLINE * 2) / H)
-  shape()
-  ctx.clip()
-  if (design.kind === 'text') {
-    ctx.fillStyle = design.bg
-    ctx.fillRect(0, 0, W, H)
-    ctx.fillStyle = design.fg
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    const main = design.sub ? H * 0.42 : H * 0.5
-    let size = 150
-    ctx.font = `900 ${size}px "Arial Black", "Helvetica Neue", Arial, sans-serif`
-    while (ctx.measureText(design.label).width > W * 0.8 && size > 40) {
-      size -= 6
+    ctx.save()
+    ctx.translate(OUTLINE, OUTLINE)
+    ctx.scale((W - OUTLINE * 2) / W, (H - OUTLINE * 2) / H)
+    shape()
+    ctx.clip()
+    if (design.kind === 'text') {
+      ctx.fillStyle = design.bg
+      ctx.fillRect(0, 0, W, H)
+      ctx.fillStyle = design.fg
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const main = design.sub ? H * 0.42 : H * 0.5
+      let size = 150
       ctx.font = `900 ${size}px "Arial Black", "Helvetica Neue", Arial, sans-serif`
+      while (ctx.measureText(design.label).width > W * 0.8 && size > 40) {
+        size -= 6
+        ctx.font = `900 ${size}px "Arial Black", "Helvetica Neue", Arial, sans-serif`
+      }
+      ctx.fillText(design.label, W / 2, main)
+      if (design.sub) {
+        ctx.globalAlpha = 0.85
+        ctx.font = `700 ${Math.round(size * 0.32)}px "Helvetica Neue", Arial, sans-serif`
+        ctx.fillText(design.sub.split('').join(' '), W / 2, H * 0.73)
+      }
+    } else if (design.kind === 'logo') {
+      ctx.fillStyle = design.bg
+      ctx.fillRect(0, 0, W, H)
+      if (image?.naturalWidth) {
+        // Fit inside the sticker with a margin (a round sticker's square inset is smaller).
+        const boxW = W * (design.round ? 0.6 : 0.78)
+        const boxH = H * (design.round ? 0.6 : 0.62)
+        const k = Math.min(boxW / image.naturalWidth, boxH / image.naturalHeight)
+        const w = image.naturalWidth * k
+        const h = image.naturalHeight * k
+        ctx.drawImage(image, (W - w) / 2, (H - h) / 2, w, h)
+      }
+    } else {
+      const color = `#${design.icon.hex}`
+      ctx.fillStyle = design.bg ?? color
+      ctx.fillRect(0, 0, W, H)
+      const path = new Path2D(design.icon.path)
+      const s = (W * 0.56) / 24
+      ctx.translate(W / 2 - 12 * s, H / 2 - 12 * s)
+      ctx.scale(s, s)
+      ctx.fillStyle = design.bg ? color : '#ffffff'
+      ctx.fill(path)
     }
-    ctx.fillText(design.label, W / 2, main)
-    if (design.sub) {
-      ctx.globalAlpha = 0.85
-      ctx.font = `700 ${Math.round(size * 0.32)}px "Helvetica Neue", Arial, sans-serif`
-      ctx.fillText(design.sub.split('').join(' '), W / 2, H * 0.73)
-    }
-  } else {
-    const color = `#${design.icon.hex}`
-    ctx.fillStyle = design.bg ?? color
-    ctx.fillRect(0, 0, W, H)
-    const path = new Path2D(design.icon.path)
-    const s = (W * 0.56) / 24
-    ctx.translate(W / 2 - 12 * s, H / 2 - 12 * s)
-    ctx.scale(s, s)
-    ctx.fillStyle = design.bg ? color : '#ffffff'
-    ctx.fill(path)
-  }
-  ctx.restore()
+    ctx.restore()
 
-  // Glossy highlight across the top of the vinyl.
-  const gloss = ctx.createLinearGradient(0, 0, 0, H)
-  gloss.addColorStop(0, 'rgba(255,255,255,0.28)')
-  gloss.addColorStop(0.45, 'rgba(255,255,255,0)')
-  ctx.save()
-  shape()
-  ctx.clip()
-  ctx.fillStyle = gloss
-  ctx.fillRect(0, 0, W, H)
-  ctx.restore()
+    // Glossy highlight across the top of the vinyl.
+    const gloss = ctx.createLinearGradient(0, 0, 0, H)
+    gloss.addColorStop(0, 'rgba(255,255,255,0.28)')
+    gloss.addColorStop(0.45, 'rgba(255,255,255,0)')
+    ctx.save()
+    shape()
+    ctx.clip()
+    ctx.fillStyle = gloss
+    ctx.fillRect(0, 0, W, H)
+    ctx.restore()
+  }
+  paint()
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = 8
+  if (design.kind === 'logo') {
+    const image = new Image()
+    image.onload = () => {
+      paint(image)
+      texture.needsUpdate = true
+    }
+    image.src = design.src
+  }
   return { texture, aspect: W / H }
 }
