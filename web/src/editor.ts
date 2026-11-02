@@ -3,7 +3,9 @@ import type { Placement } from './scene/stickers'
 
 // Sticker editor, opened with ?edit in the address: pick a sticker, click on the model to put it
 // there, then copy the layout and hand it over to be saved in data/stickerPlacements.json.
-export const EDITING = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('edit')
+// Switched off for now: set to true to bring the editor back.
+const EDITOR_ENABLED = false
+export const EDITING = EDITOR_ENABLED && typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('edit')
 
 const STORAGE_KEY = 'sticker-editor-edits'
 
