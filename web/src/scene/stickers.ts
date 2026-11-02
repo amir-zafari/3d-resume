@@ -4,25 +4,41 @@ import { siAndroid, siElementor, siJavascript, siLaravel, siN8n, siOpenai, siPhp
 type Design =
   | { kind: 'icon'; icon: SimpleIcon; bg?: string }
   | { kind: 'text'; label: string; bg: string; fg: string; sub?: string }
-  // A company logo from public/logos, fitted inside a wide (or, for square marks, round) sticker.
-  | { kind: 'logo'; src: string; bg: string; round?: boolean }
+  // A company logo from public/logos, fitted inside a rounded-square sticker.
+  | { kind: 'logo'; src: string; bg: string }
 
 // ---------------------------------------------------------------------------------------------
 // Where stickers can go. Coordinates are in the model's own space (face looks down +x):
-// y = height, z = sideways (+z is the viewer's LEFT). Each zone is filled as a grid, in list order.
+// y = height, z = sideways (+z is the viewer's LEFT).
 // ---------------------------------------------------------------------------------------------
-type ZoneName = 'workShoulder' | 'toolShoulder' | 'chest' | 'leftCheek' | 'rightCheek'
+type ZoneName = 'companies' | 'skills' | 'leftCheek' | 'rightCheek'
 
-const ZONES: Record<ZoneName, { y: [number, number]; z: [number, number]; cols: number; size: number }> = {
-  // Viewer's left shoulder: work experience and companies.
-  workShoulder: { y: [-0.255, -0.4], z: [0.315, 0.165], cols: 3, size: 0.066 },
-  // Viewer's right shoulder: skills (visited right after the cheeks).
-  toolShoulder: { y: [-0.26, -0.39], z: [-0.165, -0.315], cols: 3, size: 0.06 },
-  // Front of the jacket: the rest of the skills.
-  chest: { y: [-0.315, -0.425], z: [0.11, -0.11], cols: 3, size: 0.058 },
+// The jacket's zipper runs diagonally down the viewer's left side of the chest: z of the zipper
+// at height y, measured from screenshots. Stickers keep clear of it, and of the seam down the
+// middle (z = 0), so none gets crumpled.
+const zipperZ = (y: number) => 0.153 - 0.552 * (y + 0.27)
+
+// Scattered zones: stickers are spread over the area, evenly but not in rows. `fits` says whether
+// a sticker of radius r centred at (y, z) lies inside.
+type Scatter = { kind: 'scatter'; y: [number, number]; z: [number, number]; size: number; seed: number; fits: (y: number, z: number, r: number) => boolean }
+// Grid zones: filled as a grid, in list order.
+type Grid = { kind: 'grid'; y: [number, number]; z: [number, number]; cols: number; size: number }
+
+const ZONES: Record<ZoneName, Scatter | Grid> = {
+  // Viewer's left shoulder, between the arm and the zipper: logos of the companies and clients.
+  companies: {
+    kind: 'scatter', y: [-0.228, -0.432], z: [0.36, 0.14], size: 0.041, seed: 7,
+    fits: (y, z, r) => z + r < 0.36 && z - r > zipperZ(y) + 0.012 && y + r < -0.228 && y - r > -0.432,
+  },
+  // Right of the zipper, across the chest to the other shoulder: skills, clear of the neck.
+  skills: {
+    kind: 'scatter', y: [-0.25, -0.432], z: [0.2, -0.36], size: 0.056, seed: 3,
+    fits: (y, z, r) =>
+      z - r > -0.36 && z + r < zipperZ(y) - 0.045 && Math.abs(z) > r + 0.03 && y + r < -0.25 && y - r > -0.432 && !(z - r < 0.13 && z + r > -0.11 && y + r > -0.3),
+  },
   // Two stickers per cheek: one under the eye, one lower toward the jaw. Personal info lives here.
-  leftCheek: { y: [0.078, 0.024], z: [0.1, 0.086], cols: 1, size: 0.054 },
-  rightCheek: { y: [0.078, 0.024], z: [-0.1, -0.086], cols: 1, size: 0.054 },
+  leftCheek: { kind: 'grid', y: [0.078, 0.024], z: [0.1, 0.086], cols: 1, size: 0.054 },
+  rightCheek: { kind: 'grid', y: [0.078, 0.024], z: [-0.1, -0.086], cols: 1, size: 0.054 },
 }
 
 interface StickerDef {
@@ -35,7 +51,7 @@ interface StickerDef {
 
 const text = (label: string, bg: string, fg = '#ffffff', sub?: string): Design => ({ kind: 'text', label, bg, fg, sub })
 const icon = (i: SimpleIcon, bg?: string): Design => ({ kind: 'icon', icon: i, bg })
-const logo = (file: string, bg = '#ffffff', round = false): Design => ({ kind: 'logo', src: `${import.meta.env.BASE_URL}logos/${file}`, bg, round })
+const logo = (file: string, bg = '#ffffff'): Design => ({ kind: 'logo', src: `${import.meta.env.BASE_URL}logos/${file}`, bg })
 
 // ---------------------------------------------------------------------------------------------
 // The stickers. To change one: edit its label/colour/icon. To add: append a line with a zone.
@@ -45,29 +61,36 @@ const STICKER_LIST: StickerDef[] = [
   // درباره من — cheeks (camera visits these first, alternating left/right).
   { zone: 'leftCheek', design: text('</> AMIR', '#111827', '#f5c518', 'WEB DEVELOPER'), focus: 0 },
   { zone: 'rightCheek', design: text('CONTACT', '#26a5e4', '#ffffff', 'MAIL · TELEGRAM'), focus: 1 },
-  { zone: 'leftCheek', design: text('MASHHAD', '#0f766e', '#ffffff', 'IRAN'), focus: 2 },
-  { zone: 'rightCheek', design: text('TOOS', '#1d3557', '#ffffff', 'UNIVERSITY'), focus: 3 },
+  { zone: 'leftCheek', design: text('TOOS', '#1d3557', '#ffffff', 'UNIVERSITY'), focus: 3 },
+  { zone: 'rightCheek', design: text('MASHHAD', '#0f766e', '#ffffff', 'IRAN'), focus: 2 },
 
-  // مهارت‌ها — tools shoulder, then the jacket front, in résumé order.
-  { zone: 'toolShoulder', design: icon(siPhp, '#ffffff'), focus: 4 },
-  { zone: 'toolShoulder', design: icon(siLaravel), focus: 5 },
-  { zone: 'toolShoulder', design: icon(siPython), focus: 6 },
-  { zone: 'toolShoulder', design: icon(siN8n), focus: 7 },
-  { zone: 'toolShoulder', design: icon(siSelenium), focus: 8 },
-  { zone: 'toolShoulder', design: icon(siWordpress), focus: 9 },
-  { zone: 'chest', design: icon(siElementor), focus: 10 },
-  { zone: 'chest', design: icon(siOpenai, '#ffffff'), focus: 11 },
-  { zone: 'chest', design: icon(siAndroid), focus: 12 },
-  { zone: 'chest', design: icon(siJavascript, '#222222'), focus: 13 },
-  { zone: 'chest', design: text('I ♥ CODE', '#ffffff', '#e11d48') },
-  { zone: 'chest', design: icon(siTelegram) },
+  // مهارت‌ها — spread over the jacket, right of the zipper.
+  { zone: 'skills', design: icon(siPhp, '#ffffff'), focus: 4 },
+  { zone: 'skills', design: icon(siLaravel), focus: 5 },
+  { zone: 'skills', design: icon(siPython), focus: 6 },
+  { zone: 'skills', design: icon(siN8n), focus: 7 },
+  { zone: 'skills', design: icon(siSelenium), focus: 8 },
+  { zone: 'skills', design: icon(siWordpress), focus: 9 },
+  { zone: 'skills', design: icon(siElementor), focus: 10 },
+  { zone: 'skills', design: icon(siOpenai, '#ffffff'), focus: 11 },
+  { zone: 'skills', design: icon(siAndroid), focus: 12 },
+  { zone: 'skills', design: icon(siJavascript, '#222222'), focus: 13 },
+  { zone: 'skills', design: text('I ♥ CODE', '#ffffff', '#e11d48') },
+  { zone: 'skills', design: icon(siTelegram) },
 
-  // سوابق کاری — the companies I have worked for, on the work shoulder.
-  { zone: 'workShoulder', design: logo('barcelon.png', '#111111'), focus: 14 },
-  { zone: 'workShoulder', design: logo('arnik.png', '#ffffff', true), focus: 15 },
-  { zone: 'workShoulder', design: logo('vakilbashi.svg'), focus: 16 },
-  { zone: 'workShoulder', design: logo('see5.png', '#ffffff', true), focus: 17 },
-  { zone: 'workShoulder', design: logo('eight.svg'), focus: 18 },
+  // سوابق کاری — logos of the companies and clients I have worked for, on the left shoulder.
+  { zone: 'companies', design: logo('barcelon.png', '#111111'), focus: 14 },
+  { zone: 'companies', design: logo('arnik.png'), focus: 15 },
+  { zone: 'companies', design: logo('vakilbashi.svg'), focus: 16 },
+  { zone: 'companies', design: logo('see5.png'), focus: 17 },
+  { zone: 'companies', design: logo('eight.svg'), focus: 18 },
+  { zone: 'companies', design: logo('artifex.svg'), focus: 19 },
+  { zone: 'companies', design: logo('atari.png'), focus: 20 },
+  { zone: 'companies', design: logo('drkamandi.png'), focus: 21 },
+  { zone: 'companies', design: logo('fruitord.png'), focus: 22 },
+  { zone: 'companies', design: logo('webello.png'), focus: 23 },
+  { zone: 'companies', design: logo('yazan.png'), focus: 24 },
+  { zone: 'companies', design: logo('iran-gomrok.png'), focus: 25 },
 ]
 
 export interface Sticker {
@@ -79,34 +102,57 @@ export interface Sticker {
   focus?: number
 }
 
-// Small, repeatable "hand-placed" jitter so the grid doesn't look mechanical.
-const wobble = (i: number, salt: number) => (((i * 9301 + salt * 49297) % 233280) / 233280 - 0.5)
+// Small repeatable random numbers, so the layout is the same on every visit.
+function random(seed: number) {
+  let t = seed * 0x9e3779b9
+  return () => {
+    t = (t + 0x6d2b79f5) | 0
+    let x = Math.imul(t ^ (t >>> 15), 1 | t)
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// Spreads stickers over a zone: each goes to the candidate spot farthest from the ones already
+// placed ("best candidate" sampling), which looks hand-placed but never piles them up.
+function scatter(zone: Scatter, defs: StickerDef[]) {
+  const rand = random(zone.seed)
+  const placed: { y: number; z: number; r: number }[] = []
+  return defs.map((def) => {
+    // Half-diagonal of a rounded square, so tilted neighbours never touch.
+    const r = ((def.size ?? zone.size) / 2) * 1.3
+    let best = { y: (zone.y[0] + zone.y[1]) / 2, z: (zone.z[0] + zone.z[1]) / 2, score: -Infinity }
+    for (let i = 0; i < 400; i++) {
+      const y = THREE.MathUtils.lerp(zone.y[0], zone.y[1], rand())
+      const z = THREE.MathUtils.lerp(zone.z[0], zone.z[1], rand())
+      if (!zone.fits(y, z, r)) continue
+      const gap = Math.min(Infinity, ...placed.map((p) => Math.hypot(p.y - y, p.z - z) - p.r - r))
+      if (gap > best.score) best = { y, z, score: gap }
+    }
+    placed.push({ y: best.y, z: best.z, r })
+    return { y: best.y, z: best.z, tilt: (rand() - 0.5) * 0.4 }
+  })
+}
+
+function grid(zone: Grid, defs: StickerDef[]) {
+  const rows = Math.max(1, Math.ceil(defs.length / zone.cols))
+  return defs.map((_, i) => {
+    const col = i % zone.cols
+    const row = Math.floor(i / zone.cols)
+    const ty = rows === 1 ? 0.5 : row / (rows - 1)
+    const tz = zone.cols === 1 ? 0 : col / (zone.cols - 1)
+    return { y: THREE.MathUtils.lerp(zone.y[0], zone.y[1], ty), z: THREE.MathUtils.lerp(zone.z[0], zone.z[1], tz), tilt: (i % 2 ? 1 : -1) * 0.08 }
+  })
+}
 
 function layout(): Sticker[] {
   const byZone = new Map<ZoneName, StickerDef[]>()
   for (const def of STICKER_LIST) byZone.set(def.zone, [...(byZone.get(def.zone) ?? []), def])
   const out: Sticker[] = []
-  let n = 0
   for (const [name, defs] of byZone) {
     const zone = ZONES[name]
-    const rows = Math.max(1, Math.ceil(defs.length / zone.cols))
-    defs.forEach((def, i) => {
-      const col = i % zone.cols
-      const row = Math.floor(i / zone.cols)
-      const inRow = Math.min(zone.cols, defs.length - row * zone.cols)
-      const tz = inRow === 1 ? 0.5 : (col + (zone.cols - inRow) / 2) / Math.max(1, zone.cols - 1)
-      const ty = rows === 1 ? 0.5 : row / (rows - 1)
-      const cellZ = Math.abs(zone.z[1] - zone.z[0]) / Math.max(1, zone.cols)
-      out.push({
-        design: def.design,
-        focus: def.focus,
-        size: def.size ?? zone.size,
-        y: THREE.MathUtils.lerp(zone.y[0], zone.y[1], ty) + wobble(n, 1) * 0.012,
-        z: THREE.MathUtils.lerp(zone.z[0], zone.z[1], THREE.MathUtils.clamp(tz, 0, 1)) + wobble(n, 2) * cellZ * 0.25,
-        tilt: wobble(n, 3) * 0.6,
-      })
-      n += 1
-    })
+    const spots = zone.kind === 'scatter' ? scatter(zone, defs) : grid(zone, defs)
+    defs.forEach((def, i) => out.push({ design: def.design, focus: def.focus, size: def.size ?? zone.size, ...spots[i] }))
   }
   return out
 }
@@ -127,7 +173,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 // Draws a die-cut vinyl sticker: thick white border, soft shadow, colored face.
 export function makeStickerTexture(design: Design): { texture: THREE.CanvasTexture; aspect: number } {
-  const isText = design.kind === 'text' || (design.kind === 'logo' && !design.round)
+  const isText = design.kind === 'text'
+  const isLogo = design.kind === 'logo'
   const W = 512
   const H = isText ? 300 : 512
   const canvas = document.createElement('canvas')
@@ -137,6 +184,7 @@ export function makeStickerTexture(design: Design): { texture: THREE.CanvasTextu
   const pad = 14
   const shape = () => {
     if (isText) roundRect(ctx, pad, pad, W - pad * 2, H - pad * 2, (H - pad * 2) * 0.32)
+    else if (isLogo) roundRect(ctx, pad, pad, W - pad * 2, H - pad * 2, W * 0.22)
     else { ctx.beginPath(); ctx.arc(W / 2, H / 2, W / 2 - pad, 0, Math.PI * 2) }
   }
 
@@ -180,9 +228,9 @@ export function makeStickerTexture(design: Design): { texture: THREE.CanvasTextu
       ctx.fillStyle = design.bg
       ctx.fillRect(0, 0, W, H)
       if (image?.naturalWidth) {
-        // Fit inside the sticker with a margin (a round sticker's square inset is smaller).
-        const boxW = W * (design.round ? 0.6 : 0.78)
-        const boxH = H * (design.round ? 0.6 : 0.62)
+        // Fit inside the sticker with a margin.
+        const boxW = W * 0.8
+        const boxH = H * 0.7
         const k = Math.min(boxW / image.naturalWidth, boxH / image.naturalHeight)
         const w = image.naturalWidth * k
         const h = image.naturalHeight * k

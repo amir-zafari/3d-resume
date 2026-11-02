@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CONTACT } from '../data/tour'
 import { WORKS } from '../data/works'
-import { Logo } from '../data/logos'
 
 const SKILLS = ['WordPress', 'Elementor', 'PHP', 'Laravel', 'Python', 'n8n', 'Java / Android', 'JavaScript']
 
@@ -47,7 +46,6 @@ export function ResumePreview({ open, onClose }: { open: boolean; onClose: () =>
                   <ul>
                     {section.items?.map((item) => (
                       <li key={item.name}>
-                        <Logo name={item.logo} className="work-logo" />
                         {item.link ? <a href={item.link} target="_blank" rel="noreferrer">{item.name} ↗</a> : item.name}
                         {item.meta && <small>{item.meta}</small>}
                       </li>
