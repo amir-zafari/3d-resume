@@ -1,6 +1,6 @@
 // The guided tour: a few short steps written for clients, not recruiters. On each step the camera
-// flies to the shot named by `camera`: the opening shot, a far view of the whole model, or the
-// stickers whose `focus` ids (scene/stickers.ts) are listed, framed together.
+// flies to the shot named by `camera`: the opening shot of the whole model, or the stickers whose
+// `focus` ids (scene/stickers.ts) are listed, framed together.
 
 export const CONTACT = {
   email: '13am13ir@gmail.com',
@@ -19,7 +19,7 @@ export interface TourStep {
   id: string
   // Short label for the progress dots and screen readers.
   label: string
-  camera: 'hero' | 'far' | number[]
+  camera: 'hero' | number[]
   eyebrow: string
   title: string
   text?: string
@@ -73,7 +73,7 @@ export const TOUR: TourStep[] = [
   {
     id: 'process',
     label: 'روند کار',
-    camera: 'far',
+    camera: 'hero',
     eyebrow: 'کار با من چطور است؟',
     title: 'ساده و قدم‌به‌قدم',
     items: [
