@@ -1,3 +1,4 @@
+import type { LogoKey } from './logos'
 import { WORK_COUNT } from './works'
 
 // The guided tour: a few short steps written for clients, not recruiters. On each step the camera
@@ -19,6 +20,7 @@ export interface TourItem {
   title: string
   text: string
   href?: string
+  logo?: LogoKey
 }
 
 export interface TourStep {
@@ -39,12 +41,12 @@ const fa = (n: number) => n.toLocaleString('fa-IR')
 
 // The few projects shown on the portfolio step; the rest are in the full résumé (data/works.ts).
 const WORK_HIGHLIGHTS: TourItem[] = [
-  { title: 'فروشگاه بارسلون', text: 'سایت اصلی و فروشگاه', href: 'https://barcelon-group.ir/' },
-  { title: 'گالری آرتیفکس', text: 'فروش طلا، در حال ساخت', href: 'https://gallery-artifex.ir/' },
+  { title: 'فروشگاه بارسلون', text: 'سایت اصلی و فروشگاه', href: 'https://barcelon-group.ir/', logo: 'barcelon' },
+  { title: 'گالری آرتیفکس', text: 'فروش طلا، در حال ساخت', href: 'https://gallery-artifex.ir/', logo: 'artifex' },
   { title: 'چکدان', text: 'اپ مدیریت چک', href: 'https://cafebazaar.ir/app/ir.webello.check_management' },
-  { title: 'چت بارسلون', text: 'پیام‌رسان سازمانی', href: 'https://chat.barcelon-group.ir/' },
+  { title: 'چت بارسلون', text: 'پیام‌رسان سازمانی', href: 'https://chat.barcelon-group.ir/', logo: 'barcelon' },
   { title: 'استرومکس', text: 'سایت وردپرسی', href: 'https://estiromex.ir/' },
-  { title: 'وکیل باشی', text: 'سایت وردپرسی', href: 'https://vakilbashi.org/' },
+  { title: 'وکیل باشی', text: 'سایت وردپرسی', href: 'https://vakilbashi.org/', logo: 'vakilbashi' },
 ]
 
 export const TOUR: TourStep[] = [

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CONTACT, TOUR, type TourStep } from '../data/tour'
+import { Logo } from '../data/logos'
 import { useTour } from '../store'
 
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -102,7 +103,7 @@ function StepContent({ data, index, onFullResume }: { data: TourStep; index: num
             <li key={item.title} style={{ '--i': i } as CSSProperties}>
               {item.href ? (
                 <a href={item.href} target="_blank" rel="noreferrer">
-                  <strong>{item.title}</strong>
+                  <strong><Logo name={item.logo} className="tour-item-logo" />{item.title}</strong>
                   <span>{item.text}</span>
                   <span className="tour-item-go" aria-hidden="true">↗</span>
                 </a>
