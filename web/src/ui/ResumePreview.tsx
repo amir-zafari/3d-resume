@@ -31,7 +31,7 @@ export function ResumePreview({ open, onClose }: { open: boolean; onClose: () =>
             <dl className="resume-preview-grid">
               <div><dt>تحصیلات</dt><dd>{'کارشناسی مهندسی نرم‌افزار\nدانشگاه غیرانتفاعی توس'}</dd></div>
               <div><dt>زمینه‌های کاری</dt><dd>توسعه وب · طراحی سایت وردپرس · اتوماسیون · هوش مصنوعی</dd></div>
-              <div><dt>تماس</dt><dd className="resume-preview-contact"><a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a><a href={`https://t.me/${CONTACT.telegram}`} target="_blank" rel="noreferrer" dir="ltr">@{CONTACT.telegram}</a><a href={`tel:${CONTACT.phone}`} dir="ltr">{CONTACT.phoneLabel}</a></dd></div>
+              <div><dt>تماس</dt><dd className="resume-preview-contact"><a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a><a href={`https://t.me/${CONTACT.telegram}`} target="_blank" rel="noreferrer" dir="ltr">@{CONTACT.telegram}</a><a href={`tel:${CONTACT.phone}`} dir="ltr">{CONTACT.phoneLabel}</a><a href={`https://github.com/${CONTACT.github}`} target="_blank" rel="noreferrer" dir="ltr">github.com/{CONTACT.github}</a></dd></div>
               <div><dt>محل زندگی</dt><dd>مشهد، ایران</dd></div>
             </dl>
             <section className="resume-preview-skills" aria-label="مهارت‌ها">

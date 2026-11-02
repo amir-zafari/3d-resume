@@ -357,6 +357,7 @@ html[lang='fa'] body, html[lang='fa'] body * {
 
 .tour-footnote { margin-top: 14px; color: var(--muted); font-size: 13.5px; }
 .tour-footnote button, .tour-link {
+  text-decoration: none;
   padding: 0;
   border: 0;
   border-bottom: 1px solid rgba(216, 195, 155, 0.5);
@@ -369,7 +370,7 @@ html[lang='fa'] body, html[lang='fa'] body * {
 .tour-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .tour-actions.is-contact { flex-direction: column; align-items: stretch; margin-top: 18px; }
 .tour-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.tour-restart { display: block; margin: 16px auto 4px; font-size: 13.5px; }
+.tour-end-links { display: flex; justify-content: center; gap: 22px; margin: 16px 0 4px; font-size: 13.5px; }
 .tour-btn {
   display: inline-flex;
   align-items: center;

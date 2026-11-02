@@ -59,14 +59,12 @@ const STICKER_LIST: StickerDef[] = [
   { zone: 'chest', design: text('I ♥ CODE', '#ffffff', '#e11d48') },
   { zone: 'chest', design: icon(siTelegram) },
 
-  // سوابق کاری — work shoulder.
-  { zone: 'workShoulder', design: text('BARCELON', '#111111', '#f5c518'), focus: 14 },
-  { zone: 'workShoulder', design: text('BASIR', '#14532d', '#ffffff', 'SHOP'), focus: 15 },
-  { zone: 'workShoulder', design: text('ARNIK', '#0f766e', '#ffffff', 'WEB'), focus: 16 },
-  { zone: 'workShoulder', design: text('AI BOT', '#26a5e4', '#ffffff', 'TELEGRAM'), focus: 17 },
-  { zone: 'workShoulder', design: text('FRUITORD', '#ea580c', '#ffffff', 'STARTUP'), focus: 18 },
-  { zone: 'workShoulder', design: text('BIME', '#b91c1c', '#ffffff', 'INSURANCE'), focus: 19 },
-  { zone: 'workShoulder', design: text('NOAVAR', '#7b2cbf', '#ffffff', 'EIGHT'), focus: 20 },
+  // سوابق کاری — the companies I have worked for, on the work shoulder.
+  { zone: 'workShoulder', design: text('BARCELON', '#111111', '#f5c518', 'GROUP'), focus: 14 },
+  { zone: 'workShoulder', design: text('ARNIK', '#0f766e', '#ffffff', 'WEB'), focus: 15 },
+  { zone: 'workShoulder', design: text('VAKILBASHI', '#1d3557', '#ffffff'), focus: 16 },
+  { zone: 'workShoulder', design: text('SEE5', '#ea580c', '#ffffff', 'SITE BUILDER'), focus: 17 },
+  { zone: 'workShoulder', design: text('EIGHT', '#7b2cbf', '#ffffff', 'MARKETING'), focus: 18 },
 ]
 
 export interface Sticker {

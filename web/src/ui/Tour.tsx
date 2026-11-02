@@ -130,7 +130,7 @@ function StepContent({ data, index, onFullResume }: { data: TourStep; index: num
       )}
       {index === LAST && (
         <div className="tour-actions is-contact">
-          <a className="tour-btn primary" href={`https://t.me/${CONTACT.telegram}`} target="_blank" rel="noreferrer">پیام در تلگرام</a>
+          <a className="tour-btn primary" href={`https://t.me/${CONTACT.telegram}?text=${encodeURIComponent(CONTACT.telegramGreeting)}`} target="_blank" rel="noreferrer">پیام در تلگرام</a>
           <div className="tour-actions-row">
             <a className="tour-btn" href={`tel:${CONTACT.phone}`} aria-label={`تماس تلفنی ${CONTACT.phoneLabel}`}>تماس تلفنی</a>
             <a className="tour-btn" href={`mailto:${CONTACT.email}`} aria-label={`ایمیل ${CONTACT.email}`}>ایمیل</a>
@@ -149,7 +149,10 @@ function StepContent({ data, index, onFullResume }: { data: TourStep; index: num
         </div>
       )}
       {index === LAST && (
-        <button className="tour-link tour-restart" type="button" onClick={() => go(0)}>دیدن دوباره از اول</button>
+        <p className="tour-end-links">
+          <a className="tour-link" href={`https://github.com/${CONTACT.github}`} target="_blank" rel="noreferrer">کدهای من در گیت‌هاب</a>
+          <button className="tour-link" type="button" onClick={() => go(0)}>دیدن دوباره از اول</button>
+        </p>
       )}
     </>
   )
