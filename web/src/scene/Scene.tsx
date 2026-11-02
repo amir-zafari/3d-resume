@@ -4,19 +4,17 @@ import { useGLTF } from '@react-three/drei'
 import { Bloom, DepthOfField, EffectComposer, SMAA } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import Env from './Env'
-import { FOCUS_POINTS } from '../data/focusPoints'
+import { TOUR } from '../data/tour'
+import { useTour } from '../store'
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'
 import { STICKERS, makeStickerTexture } from './stickers'
 import { createPaintedEyes, paintEye } from './eyes'
 import { boot, useModelUrl } from './modelSource'
 
-const POINTS = FOCUS_POINTS as readonly string[]
-const NODE_LINE = 0.3
 const MODEL_HEIGHT = 5.8
 const MODEL_BOTTOM = -3.1
 const BASE_YAW = -Math.PI / 2
 const Y_AXIS = new THREE.Vector3(0, 1, 0)
-const HEAD_PIVOT = new THREE.Vector3(0.06, 0.17, 0)
 const NARROW_FOV = 30
 // Sticker height on phone screens in NDC (+1 = top edge): 0.5 is a quarter of the way down.
 const NARROW_STICKER_Y = 0.5
@@ -27,8 +25,12 @@ type CameraPreset = {
   fov: number
 }
 
-const HERO_WIDE: CameraPreset = { position: [0, -1.2, 21], target: [0, -1.2, 1.6], fov: 23 }
-const HERO_NARROW: CameraPreset = { position: [0, 0.1, 19], target: [0, 0.1, 1.6], fov: 23 }
+// Opening shot. Desktop: the camera sits to the right so the model stands left of the tour card.
+// Phones: it looks low so the model fills the top of the screen above the card.
+const HERO_WIDE: CameraPreset = { position: [2.2, -1.2, 21], target: [2.2, -1.2, 1.6], fov: 23 }
+const HERO_NARROW: CameraPreset = { position: [0, -2.1, 21], target: [0, -2.1, 1.6], fov: 30 }
+// Seconds per flight between steps; the camera eases out, pulls back a little and lands.
+const FLIGHT = 1.6
 const FALLBACK: CameraPreset = { position: [0, 0.9, 7], target: [0, 0.9, 1], fov: 30 }
 
 type Anchor = { point: THREE.Vector3; normal: THREE.Vector3; focus?: number }
@@ -83,7 +85,7 @@ function toWorld(local: THREE.Vector3, offset: THREE.Vector3, scale: number) {
 
 function stickerPreset(point: THREE.Vector3, normal: THREE.Vector3, index: number, narrow: boolean): CameraPreset {
   if (narrow) {
-    // Phones: the timeline card fills the lower half, so the sticker sits in the upper quarter.
+    // Phones: the tour card fills the lower half, so the sticker sits in the upper quarter.
     // Aiming below it by (screen offset × visible half-height) puts it there at any distance.
     const distance = 3.4
     const drop = distance * Math.tan(THREE.MathUtils.degToRad(NARROW_FOV / 2)) * NARROW_STICKER_Y
@@ -91,32 +93,21 @@ function stickerPreset(point: THREE.Vector3, normal: THREE.Vector3, index: numbe
     const position = target.clone().add(normal.clone().multiplyScalar(distance))
     return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: NARROW_FOV }
   }
-  // Desktop: aim to the right of the sticker so it sits left of centre, clear of the timeline text.
+  // Desktop: aim to the right of the sticker so it sits left of centre, clear of the tour card.
   const target = point.clone().add(new THREE.Vector3(0.42, 0, 0))
   const side = index % 2 === 0 ? 0.15 : -0.15
   const position = target.clone().add(normal.clone().multiplyScalar(2.3)).add(new THREE.Vector3(side, 0.12, 0))
   return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: 30 }
 }
 
+// One camera preset per tour step: the opening shot, or a close-up of that step's sticker.
 function buildPresets(anchors: Anchor[], offset: THREE.Vector3, scale: number, narrow: boolean): CameraPreset[] {
-  const entries = POINTS.map((_, index) => {
-    const anchor = anchors.find((a) => a.focus === index)
+  return TOUR.map((step, index) => {
+    if (step.sticker === undefined) return narrow ? HERO_NARROW : HERO_WIDE
+    const anchor = anchors.find((a) => a.focus === step.sticker)
     if (!anchor) return FALLBACK
     return stickerPreset(toWorld(anchor.point, offset, scale), anchor.normal.clone().applyAxisAngle(Y_AXIS, BASE_YAW), index, narrow)
   })
-  return [narrow ? HERO_NARROW : HERO_WIDE, ...entries]
-}
-
-// Works section: the camera swings around the head from a three-quarter view to a full profile
-// while the gallery scrolls sideways.
-function worksPreset(pivot: THREE.Vector3, progress: number, narrow: boolean): CameraPreset {
-  // Negative angles orbit to the viewer's left, so the profile faces into the cards on the right.
-  const angle = THREE.MathUtils.lerp(-0.3, -1.45, progress)
-  const radius = narrow ? 10 : 9
-  const position = pivot.clone().add(new THREE.Vector3(Math.sin(angle) * radius, 0.35, Math.cos(angle) * radius))
-  const right = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle))
-  const target = narrow ? pivot.clone().add(new THREE.Vector3(0, -1.1, 0)) : pivot.clone().add(right.multiplyScalar(1.35))
-  return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: 30 }
 }
 
 function GradientBackground() {
@@ -159,7 +150,7 @@ function Lights({ lowPower }: { lowPower: boolean }) {
 
 function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<THREE.Vector3>; frameRef: MutableRefObject<number> }) {
   const { scene } = useGLTF(useModelUrl())
-  const { model, offset, scale, wide, narrow, eyes, mesh, pivot } = useMemo(() => {
+  const { model, offset, scale, wide, narrow, eyes, mesh } = useMemo(() => {
     const clone = scene.clone(true)
     clone.traverse((object: THREE.Object3D) => {
       if ((object as THREE.Mesh).isMesh) {
@@ -184,7 +175,6 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
       scale,
       eyes,
       mesh,
-      pivot: toWorld(HEAD_PIVOT, offset, scale),
       wide: buildPresets(anchors, offset, scale, false),
       narrow: buildPresets(anchors, offset, scale, true),
     }
@@ -225,86 +215,53 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
   })
 
   const get = useThree((state) => state.get)
-  const scrollTargets = useRef<HTMLElement[] | null>(null)
-  const worksEl = useRef<HTMLElement | null>(null)
-  const current = useRef(0)
   const desiredPosition = useRef(new THREE.Vector3())
   const desiredTarget = useRef(new THREE.Vector3())
-  const lookAtMatrix = useRef(new THREE.Matrix4())
-  const desiredQuaternion = useRef(new THREE.Quaternion())
+  // The flight to the current step: where it started and when.
+  const flight = useRef({ step: -1, start: 0, fromPosition: new THREE.Vector3(), fromTarget: new THREE.Vector3(), fromFov: 30 })
 
-  useEffect(() => {
-    scrollTargets.current = null
-    worksEl.current = null
-  }, [])
-
-  useFrame((_, delta) => {
-    if (!scrollTargets.current || scrollTargets.current.length !== POINTS.length) {
-      scrollTargets.current = POINTS.map((point) => document.querySelector(`[data-point="${point}"]`)).filter(Boolean) as HTMLElement[]
-    }
-    if (!worksEl.current) worksEl.current = document.querySelector('.wk-gallery') as HTMLElement | null
-
+  useFrame((state, delta) => {
     const camera = get().camera as THREE.PerspectiveCamera
-    const isNarrow = camera.aspect < 0.85
-    const presets = isNarrow ? narrow : wide
-    const last = presets.length
+    const presets = camera.aspect < 0.85 ? narrow : wide
+    const step = useTour.getState().step
+    const to = presets[step]
+    const f = flight.current
+    const t = state.clock.elapsedTime
 
-    let targetIndex = 0
-    const entries = scrollTargets.current
-    if (entries.length === POINTS.length) {
-      const referenceLine = window.scrollY + window.innerHeight * NODE_LINE
-      const tops = entries.map((entry) => entry.getBoundingClientRect().top + window.scrollY)
-      if (referenceLine <= tops[0]) {
-        // The hero shot starts where the model is revealed (below the opening cover), not at the page top.
-        const heroTop = (document.querySelector('.hero') as HTMLElement | null)?.offsetTop ?? 0
-        const span = Math.max(1, tops[0] - window.innerHeight * NODE_LINE - heroTop)
-        targetIndex = THREE.MathUtils.clamp((window.scrollY - heroTop) / span, 0, 1)
-      } else if (referenceLine >= tops[tops.length - 1]) {
-        targetIndex = POINTS.length
-      } else {
-        for (let index = 0; index < tops.length - 1; index += 1) {
-          if (referenceLine <= tops[index + 1]) {
-            const t = (referenceLine - tops[index]) / Math.max(1, tops[index + 1] - tops[index])
-            // Phones scroll in flicks: hold each sticker for most of its entry and move between them
-            // near the boundary, so the camera rests on a sticker instead of drifting between two.
-            targetIndex = index + 1 + (isNarrow ? THREE.MathUtils.smootherstep(t, 0.35, 0.95) : t)
-            break
-          }
-        }
-      }
+    if (f.step === -1) {
+      // First frame: start on the current step instead of flying in behind the loading screen.
+      camera.position.fromArray(to.position)
+      focusRef.current.fromArray(to.target)
+      camera.fov = to.fov
+      f.step = step
+      f.start = t - FLIGHT
+    } else if (f.step !== step) {
+      f.step = step
+      f.start = t
+      f.fromPosition.copy(camera.position)
+      f.fromTarget.copy(focusRef.current)
+      f.fromFov = camera.fov
     }
 
-    let worksProgress = 0
-    const works = worksEl.current
-    if (works) {
-      const rect = works.getBoundingClientRect()
-      if (rect.top < window.innerHeight * 0.55) targetIndex = last
-      worksProgress = THREE.MathUtils.clamp(-rect.top / Math.max(1, rect.height - window.innerHeight), 0, 1)
+    const progress = THREE.MathUtils.clamp((t - f.start) / FLIGHT, 0, 1)
+    desiredPosition.current.fromArray(to.position)
+    desiredTarget.current.fromArray(to.target)
+    if (progress < 1) {
+      const e = progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2
+      const pullBack = Math.sin(Math.PI * e) * f.fromPosition.distanceTo(desiredPosition.current) * 0.3
+      camera.position.lerpVectors(f.fromPosition, desiredPosition.current, e).z += pullBack
+      focusRef.current.lerpVectors(f.fromTarget, desiredTarget.current, e)
+      camera.fov = THREE.MathUtils.lerp(f.fromFov, to.fov, e)
+    } else {
+      // Settled: keep easing toward the preset, which also absorbs window resizes smoothly.
+      const smoothing = 1 - Math.pow(0.02, delta)
+      camera.position.lerp(desiredPosition.current, smoothing)
+      focusRef.current.lerp(desiredTarget.current, smoothing)
+      camera.fov = THREE.MathUtils.lerp(camera.fov, to.fov, smoothing)
     }
-    const presetAt = (i: number) => (i >= last ? worksPreset(pivot, worksProgress, isNarrow) : presets[i])
-
-    const smoothing = 1 - Math.pow(0.12, delta)
-    current.current += (targetIndex - current.current) * smoothing
-    const safeIndex = THREE.MathUtils.clamp(current.current, 0, last)
-    const lower = Math.floor(safeIndex)
-    const upper = Math.min(lower + 1, last)
-    const progress = safeIndex - lower
-    const from = presetAt(lower)
-    const to = presetAt(upper)
-
-    desiredPosition.current.fromArray(from.position).lerp(new THREE.Vector3().fromArray(to.position), progress)
-    desiredTarget.current.fromArray(from.target).lerp(new THREE.Vector3().fromArray(to.target), progress)
-    const fov = THREE.MathUtils.lerp(from.fov, to.fov, progress)
-    camera.position.lerp(desiredPosition.current, smoothing)
-    focusRef.current.lerp(desiredTarget.current, smoothing)
-    lookAtMatrix.current.lookAt(camera.position, focusRef.current, camera.up)
-    desiredQuaternion.current.setFromRotationMatrix(lookAtMatrix.current)
-    camera.quaternion.slerp(desiredQuaternion.current, smoothing)
-    if (Math.abs(camera.fov - fov) > 0.01) {
-      camera.fov = THREE.MathUtils.lerp(camera.fov, fov, smoothing)
-      camera.updateProjectionMatrix()
-    }
-    frameRef.current = safeIndex
+    camera.lookAt(focusRef.current)
+    camera.updateProjectionMatrix()
+    frameRef.current = step
   })
 
   // The HTML overlay sits above the canvas, so R3F never sees the mouse: listen on the window.
@@ -336,9 +293,9 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
     p.smoothX += ((idle ? 0 : p.x) - p.smoothX) * pk
     p.smoothY += ((idle ? 0 : p.y) - p.smoothY) * pk
 
-    // Full head-follow on the hero shot; calmer during sticker close-ups and the works orbit.
+    // Full head-follow on the opening shot; calmer during sticker close-ups.
     const k = 1 - Math.pow(0.02, delta)
-    const amp = frameRef.current < 0.6 ? 1 : 0.12
+    const amp = frameRef.current === 0 ? 1 : 0.12
     const idleYaw = Math.sin(t * 0.37) * 0.07 + Math.sin(t * 0.91) * 0.025
     const idlePitch = Math.sin(t * 0.53) * 0.03
     head.rotation.y += (BASE_YAW + (p.smoothX * 0.18 + idleYaw) * amp - head.rotation.y) * k

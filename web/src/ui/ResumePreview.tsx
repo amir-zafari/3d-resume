@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CONTACT } from '../data/resume'
+import { CONTACT } from '../data/tour'
+import { WORKS } from '../data/works'
 
 const SKILLS = ['WordPress', 'Elementor', 'PHP', 'Laravel', 'Python', 'n8n', 'Java / Android', 'JavaScript']
 
@@ -36,6 +37,21 @@ export function ResumePreview({ open, onClose }: { open: boolean; onClose: () =>
             <section className="resume-preview-skills" aria-label="مهارت‌ها">
               <p>مهارت‌ها</p>
               <div>{SKILLS.map((skill) => <span key={skill}>{skill}</span>)}</div>
+            </section>
+            <section className="resume-preview-works" aria-label="نمونه‌کارها">
+              <p>نمونه‌کارها</p>
+              {WORKS.sections.map((section) => (
+                <div key={section.id}>
+                  <h3>{section.title}</h3>
+                  <ul>
+                    {section.items?.map((item) => (
+                      <li key={item.name}>
+                        {item.link ? <a href={item.link} target="_blank" rel="noreferrer">{item.name} ↗</a> : item.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </section>
           </motion.aside>
         </>
