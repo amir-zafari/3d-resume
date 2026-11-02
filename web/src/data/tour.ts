@@ -1,6 +1,6 @@
 // The guided tour: a few short steps written for clients, not recruiters. On each step the camera
-// flies to the sticker whose `focus` id (scene/stickers.ts) matches `sticker`; the first step shows
-// the whole model instead.
+// flies to the shot named by `camera`: the opening shot, a far view of the whole model, or the
+// stickers whose `focus` ids (scene/stickers.ts) are listed, framed together.
 
 export const CONTACT = {
   email: '13am13ir@gmail.com',
@@ -19,7 +19,7 @@ export interface TourStep {
   id: string
   // Short label for the progress dots and screen readers.
   label: string
-  sticker?: number
+  camera: 'hero' | 'far' | number[]
   eyebrow: string
   title: string
   text?: string
@@ -33,6 +33,7 @@ export const TOUR: TourStep[] = [
   {
     id: 'hello',
     label: 'سلام',
+    camera: 'hero',
     eyebrow: 'سلام، من امیرم',
     title: 'برای کسب‌وکار شما سایت و اپلیکیشن می‌سازم',
     text: 'از سال ۱۳۹۵ برای فروشگاه‌ها و کسب‌وکارها سایت، فروشگاه اینترنتی و اپ اندروید ساخته‌ام. در چند قدم کوتاه نشانتان می‌دهم.',
@@ -41,7 +42,8 @@ export const TOUR: TourStep[] = [
   {
     id: 'services',
     label: 'خدمات',
-    sticker: 9,
+    // Every skill sticker: the right shoulder and the jacket front.
+    camera: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
     eyebrow: 'چه چیزی برایتان می‌سازم؟',
     title: 'هر چیزی که کسب‌وکارتان را آنلاین کند',
     items: [
@@ -54,7 +56,8 @@ export const TOUR: TourStep[] = [
   {
     id: 'work',
     label: 'نمونه‌کارها',
-    sticker: 12,
+    // Every company on the shoulder.
+    camera: [14, 15, 16, 17, 18, 19, 20],
     eyebrow: 'نمونه‌کارهای واقعی',
     title: 'همه آنلاین هستند؛ خودتان ببینید',
     items: [
@@ -70,7 +73,7 @@ export const TOUR: TourStep[] = [
   {
     id: 'process',
     label: 'روند کار',
-    sticker: 14,
+    camera: 'far',
     eyebrow: 'کار با من چطور است؟',
     title: 'ساده و قدم‌به‌قدم',
     items: [
@@ -83,7 +86,7 @@ export const TOUR: TourStep[] = [
   {
     id: 'contact',
     label: 'تماس',
-    sticker: 1,
+    camera: [1],
     eyebrow: 'بیایید شروع کنیم',
     title: 'یک پیام کافی است',
     text: 'بگویید چه چیزی در ذهن دارید؛ با هم درباره پروژه‌تان صحبت می‌کنیم.',
