@@ -47,6 +47,7 @@ export function ResumePreview({ open, onClose }: { open: boolean; onClose: () =>
                     {section.items?.map((item) => (
                       <li key={item.name}>
                         {item.link ? <a href={item.link} target="_blank" rel="noreferrer">{item.name} ↗</a> : item.name}
+                        {item.meta && <small>{item.meta}</small>}
                       </li>
                     ))}
                   </ul>

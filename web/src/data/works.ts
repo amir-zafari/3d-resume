@@ -13,8 +13,11 @@ export interface WorkSection {
 
 export const WORKS: { sections: WorkSection[] } = {
   sections: [
-    { id: 'wordpress', title: 'طراحی سایت با وردپرس', items: [
-      { name: 'فروشگاه اینترنتی بارسلون', meta: 'وردپرس', link: 'https://barcelon-group.ir/' },
+    { id: 'sites', title: 'سایت و فروشگاه اینترنتی', items: [
+      { name: 'سایت اصلی و فروشگاه بارسلون', meta: 'وردپرس', link: 'https://barcelon-group.ir/' },
+      { name: 'گالری آرتیفکس، فروش طلا', meta: 'در حال توسعه', link: 'https://gallery-artifex.ir/' },
+      { name: 'سایت استرومکس', meta: 'وردپرس', link: 'https://estiromex.ir/' },
+      { name: 'سایت خبری آتاری', link: 'https://atari-shop.ir/' },
       { name: 'فروشگاه اینترنتی بصیر شاپ', meta: 'وردپرس', link: 'https://basir.store/' },
       { name: 'فروشگاه اینترنتی فروترد', meta: 'وردپرس', link: 'https://fruitord.ir/' },
       { name: 'فروشگاه اینترنتی صباغ زاده', meta: 'وردپرس', link: 'https://sabbaghzadehco.com/' },
@@ -23,23 +26,31 @@ export const WORKS: { sections: WorkSection[] } = {
       { name: 'وبلاگ سایت وکیل باشی', meta: 'وردپرس', link: 'https://vakilbashi.org/mag' },
       { name: 'سایت تیم برنامه‌نویسی وبلو', meta: 'وردپرس', link: 'https://webello.ir/' },
     ] },
-    { id: 'laravel', title: 'توسعه وب با لاراول', items: [
-      { name: 'چت سازمانی بارسلون', meta: 'Laravel', link: 'https://chat.barcelon-group.ir/' },
-      { name: 'پنل خدماتی و تعمیراتی بارسلون', meta: 'Laravel', link: 'https://service.barcelon-group.ir/' },
+    { id: 'panels', title: 'پنل مدیریت و سامانه‌های سازمانی', items: [
+      { name: 'پنل مدیریت پرونده بیماران دکتر کمندی', meta: 'در حال توسعه', link: 'https://drkamandi.ir/' },
+      { name: 'پنل خدمات پس از فروش بارسلون', meta: 'Laravel', link: 'https://service.barcelon-group.ir/auth' },
+      { name: 'پنل خدمات پس از فروش آتاری', link: 'https://service.atari-shop.ir/auth' },
+      { name: 'چت درون‌سازمانی بارسلون', meta: 'Laravel', link: 'https://chat.barcelon-group.ir/' },
+      { name: 'سایت مستندات بارسلون و آتاری', link: 'https://docservice.barcelon-group.ir/' },
       { name: 'چت روم شخصی', meta: 'Laravel', link: 'https://webello.zlc.ir/room/' },
       { name: 'پنل بیمه', meta: 'Laravel', link: 'https://bime5.zlc.ir/bime5/ho.php' },
     ] },
-    { id: 'bots', title: 'ربات‌های تلگرامی', items: [
-      { name: 'ربات تلگرامی ستی', meta: 'PHP', link: 'https://t.me/stijoon_bot' },
-      { name: 'ربات تلگرامی دکتر امیرحسین جمالپور', meta: 'PHP', link: 'https://t.me/stijoon_bot' },
-      { name: 'ربات تلگرامی ولت یاب', meta: 'PHP' },
-    ] },
     { id: 'apps', title: 'اپلیکیشن‌ها', items: [
-      { name: 'تصویرسازی لغات ۵۰۴ و تافل', meta: 'اندروید', link: 'https://cafebazaar.ir/app/com.faramuz.learnEn' },
-      { name: 'برنامه آموزش ضرب «ضرب جنگلی»', meta: 'اندروید', link: 'https://cafebazaar.ir/app/ir.webello.greatrace' },
+      { name: 'چکدان، مدیریت چک', meta: 'اندروید · کافه‌بازار', link: 'https://cafebazaar.ir/app/ir.webello.check_management' },
+      { name: 'YAZAN، مدیریت کد', meta: 'اندروید · تحویل‌شده به مشتری' },
+      { name: 'مدیریت سفارش، انبار و سفارش پیامکی با هوش مصنوعی محلی', meta: 'اندروید' },
+      { name: 'تصویرسازی لغات ۵۰۴ و تافل', meta: 'اندروید · کافه‌بازار', link: 'https://cafebazaar.ir/app/com.faramuz.learnEn' },
+      { name: 'برنامه آموزش ضرب «ضرب جنگلی»', meta: 'اندروید · کافه‌بازار', link: 'https://cafebazaar.ir/app/ir.webello.greatrace' },
       { name: 'اپلیکیشن ورود و خروج کارکنان', meta: 'اندروید' },
       { name: 'پروکسی‌یاب MTProxy', meta: 'اندروید' },
       { name: 'Tebot، مدیریت کانال‌های تلگرامی', meta: 'اندروید' },
+    ] },
+    { id: 'bots', title: 'ربات و هوش مصنوعی', items: [
+      { name: 'مدیریت خودکار اکانت تلگرام با هوش مصنوعی', meta: 'هوش مصنوعی' },
+      { name: 'ربات مشتری‌یاب تلگرام', meta: 'هوش مصنوعی پیام‌ها را می‌خواند و مشتری پیدا می‌کند' },
+      { name: 'ربات تلگرامی ستی', meta: 'PHP', link: 'https://t.me/stijoon_bot' },
+      { name: 'ربات تلگرامی دکتر امیرحسین جمالپور', meta: 'PHP' },
+      { name: 'ربات تلگرامی ولت یاب', meta: 'PHP' },
     ] },
     { id: 'n8n', title: 'اتوماسیون با n8n', items: [
       { name: 'سیستم خودکار آپدیت قیمت وردپرس', meta: 'n8n' },
@@ -58,3 +69,6 @@ export const WORKS: { sections: WorkSection[] } = {
     ] },
   ],
 }
+
+// Every project in the list, for the counts shown in the tour.
+export const WORK_COUNT = WORKS.sections.reduce((sum, section) => sum + section.items.length, 0)

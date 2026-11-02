@@ -1,3 +1,5 @@
+import { WORK_COUNT } from './works'
+
 // The guided tour: a few short steps written for clients, not recruiters. On each step the camera
 // flies to the shot named by `camera`: the opening shot of the whole model, or the stickers whose
 // `focus` ids (scene/stickers.ts) are listed, framed together.
@@ -29,6 +31,18 @@ export interface TourStep {
   footnote?: string
 }
 
+const fa = (n: number) => n.toLocaleString('fa-IR')
+
+// The few projects shown on the portfolio step; the rest are in the full résumé (data/works.ts).
+const WORK_HIGHLIGHTS: TourItem[] = [
+  { title: 'فروشگاه بارسلون', text: 'سایت اصلی و فروشگاه', href: 'https://barcelon-group.ir/' },
+  { title: 'گالری آرتیفکس', text: 'فروش طلا · در حال توسعه', href: 'https://gallery-artifex.ir/' },
+  { title: 'چکدان', text: 'اپ مدیریت چک، کافه‌بازار', href: 'https://cafebazaar.ir/app/ir.webello.check_management' },
+  { title: 'چت سازمانی بارسلون', text: 'پیام‌رسان داخلی شرکت', href: 'https://chat.barcelon-group.ir/' },
+  { title: 'استرومکس', text: 'سایت وردپرسی', href: 'https://estiromex.ir/' },
+  { title: 'لغات ۵۰۴ و تافل', text: 'اپ آموزشی، کافه‌بازار', href: 'https://cafebazaar.ir/app/com.faramuz.learnEn' },
+]
+
 export const TOUR: TourStep[] = [
   {
     id: 'hello',
@@ -37,7 +51,7 @@ export const TOUR: TourStep[] = [
     eyebrow: 'سلام، من امیرم',
     title: 'برای کسب‌وکار شما سایت و اپلیکیشن می‌سازم',
     text: 'از سال ۱۳۹۵ برای فروشگاه‌ها و کسب‌وکارها سایت، فروشگاه اینترنتی و اپ اندروید ساخته‌ام. در چند قدم کوتاه نشانتان می‌دهم.',
-    facts: ['+۳۰ پروژه تحویل‌شده', 'مشهد · همکاری از راه دور'],
+    facts: [`+${fa(Math.floor(WORK_COUNT / 10) * 10)} پروژه`, 'مشهد · همکاری از راه دور'],
   },
   {
     id: 'services',
@@ -60,15 +74,8 @@ export const TOUR: TourStep[] = [
     camera: [14, 15, 16, 17, 18, 19, 20],
     eyebrow: 'نمونه‌کارهای واقعی',
     title: 'همه آنلاین هستند؛ خودتان ببینید',
-    items: [
-      { title: 'فروشگاه بارسلون', text: 'سایت فروشگاهی', href: 'https://barcelon-group.ir/' },
-      { title: 'فروشگاه بصیر شاپ', text: 'سایت فروشگاهی', href: 'https://basir.store/' },
-      { title: 'فروشگاه فروترد', text: 'سایت فروشگاهی', href: 'https://fruitord.ir/' },
-      { title: 'لغات ۵۰۴ و تافل', text: 'اپ آموزشی، کافه‌بازار', href: 'https://cafebazaar.ir/app/com.faramuz.learnEn' },
-      { title: 'ضرب جنگلی', text: 'بازی آموزشی، کافه‌بازار', href: 'https://cafebazaar.ir/app/ir.webello.greatrace' },
-      { title: 'ربات ستی', text: 'ربات تلگرامی', href: 'https://t.me/stijoon_bot' },
-    ],
-    footnote: 'و بیش از ۲۰ پروژه دیگر در رزومه کامل.',
+    items: WORK_HIGHLIGHTS,
+    footnote: `و ${fa(WORK_COUNT - WORK_HIGHLIGHTS.length)} پروژه دیگر در رزومه کامل.`,
   },
   {
     id: 'process',
