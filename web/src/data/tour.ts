@@ -9,6 +9,10 @@ export const CONTACT = {
   telegram: 'Amirzzz81',
   phone: '+989960242066',
   phoneLabel: '۰۹۹۶۰۲۴۲۰۶۶',
+  github: 'amir-zafari',
+  // Typed into the chat for the visitor when they open Telegram from the site, so starting is
+  // one tap. Kept general: they may want a site, an app, or only advice.
+  telegramGreeting: 'سلام امیر، از رزومه‌ات آمدم. یک ایده دارم و می‌خواهم درباره‌اش مشورت کنم.',
 }
 
 export interface TourItem {
@@ -36,9 +40,9 @@ const fa = (n: number) => n.toLocaleString('fa-IR')
 // The few projects shown on the portfolio step; the rest are in the full résumé (data/works.ts).
 const WORK_HIGHLIGHTS: TourItem[] = [
   { title: 'فروشگاه بارسلون', text: 'سایت اصلی و فروشگاه', href: 'https://barcelon-group.ir/' },
-  { title: 'گالری آرتیفکس', text: 'فروش طلا · در حال توسعه', href: 'https://gallery-artifex.ir/' },
-  { title: 'چکدان', text: 'اپ مدیریت چک، کافه‌بازار', href: 'https://cafebazaar.ir/app/ir.webello.check_management' },
-  { title: 'چت سازمانی بارسلون', text: 'پیام‌رسان داخلی شرکت', href: 'https://chat.barcelon-group.ir/' },
+  { title: 'گالری آرتیفکس', text: 'فروش طلا، در حال ساخت', href: 'https://gallery-artifex.ir/' },
+  { title: 'چکدان', text: 'اپ مدیریت چک', href: 'https://cafebazaar.ir/app/ir.webello.check_management' },
+  { title: 'چت بارسلون', text: 'پیام‌رسان سازمانی', href: 'https://chat.barcelon-group.ir/' },
   { title: 'استرومکس', text: 'سایت وردپرسی', href: 'https://estiromex.ir/' },
   { title: 'لغات ۵۰۴ و تافل', text: 'اپ آموزشی، کافه‌بازار', href: 'https://cafebazaar.ir/app/com.faramuz.learnEn' },
 ]
@@ -49,9 +53,9 @@ export const TOUR: TourStep[] = [
     label: 'سلام',
     camera: 'hero',
     eyebrow: 'سلام، من امیرم',
-    title: 'برای کسب‌وکار شما سایت و اپلیکیشن می‌سازم',
-    text: 'از سال ۱۳۹۵ برای فروشگاه‌ها و کسب‌وکارها سایت، فروشگاه اینترنتی و اپ اندروید ساخته‌ام. در چند قدم کوتاه نشانتان می‌دهم.',
-    facts: [`+${fa(Math.floor(WORK_COUNT / 10) * 10)} پروژه`, 'مشهد · همکاری از راه دور'],
+    title: 'ایده‌تان را بگویید، سایت یا اپش را می‌سازم',
+    text: 'از سال ۱۳۹۵ سایت، فروشگاه اینترنتی و اپ اندروید می‌سازم. اگر هنوز نمی‌دانید دقیقاً چه می‌خواهید، اشکالی ندارد؛ با هم به نتیجه می‌رسیم.',
+    facts: [`+${fa(Math.floor(WORK_COUNT / 10) * 10)} پروژه`, 'تحویل از کمتر از یک هفته'],
   },
   {
     id: 'services',
@@ -70,8 +74,8 @@ export const TOUR: TourStep[] = [
   {
     id: 'work',
     label: 'نمونه‌کارها',
-    // Every company on the shoulder.
-    camera: [14, 15, 16, 17, 18, 19, 20],
+    // Every company I have worked for, on the shoulder.
+    camera: [14, 15, 16, 17, 18],
     eyebrow: 'نمونه‌کارهای واقعی',
     title: 'همه آنلاین هستند؛ خودتان ببینید',
     items: WORK_HIGHLIGHTS,
@@ -84,10 +88,10 @@ export const TOUR: TourStep[] = [
     eyebrow: 'کار با من چطور است؟',
     title: 'ساده و قدم‌به‌قدم',
     items: [
-      { title: 'گفتگو', text: 'نیازتان را می‌شنوم و راه ساده پیشنهاد می‌دهم' },
-      { title: 'طراحی', text: 'قبل از ساخت، ظاهر کار را می‌بینید' },
-      { title: 'ساخت', text: 'در طول کار در جریان پیشرفت هستید' },
-      { title: 'تحویل و پشتیبانی', text: 'آموزش استفاده و همراهی بعد از تحویل' },
+      { title: 'گفتگو', text: 'ایده‌تان را می‌شنوم و ساده‌ترین راه را پیشنهاد می‌دهم' },
+      { title: 'دمو', text: 'اول نمونه اولیه را می‌بینید، بعد شروع می‌کنیم' },
+      { title: 'ساخت', text: 'سبک‌ها زیر یک هفته، بزرگ‌ترها تا یک ماه' },
+      { title: 'تحویل و پشتیبانی', text: 'آموزش، ۱ تا ۳ ماه پشتیبانی رایگان و هاست' },
     ],
   },
   {
@@ -96,7 +100,7 @@ export const TOUR: TourStep[] = [
     camera: [1],
     eyebrow: 'بیایید شروع کنیم',
     title: 'یک پیام کافی است',
-    text: 'بگویید چه چیزی در ذهن دارید؛ با هم درباره پروژه‌تان صحبت می‌کنیم.',
+    text: 'هر پروژه قیمت خودش را دارد. بگویید چه در ذهن دارید تا با هم صحبت کنیم و قیمت دقیق بگویم.',
     quotes: [
       { name: 'حاجی پیر فرخانی', text: 'در سریع‌ترین حالت ممکن سایت من را آماده کرد و خیلی سریع اولین سفارش را گرفتم.' },
       { name: 'دکتر امیرحسین جمالپور', text: 'پروژه را در اسرع وقت تحویل دادند. پروژه‌های بعدی را هم با ایشان جلو می‌برم.' },
