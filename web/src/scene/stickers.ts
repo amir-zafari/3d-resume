@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import PLACEMENTS from '../data/stickerPlacements.json'
 import { siAndroid, siElementor, siJavascript, siLaravel, siN8n, siOpenai, siPhp, siPython, siSelenium, siTelegram, siWordpress, type SimpleIcon } from 'simple-icons'
 
 type Design =
@@ -42,6 +43,8 @@ const ZONES: Record<ZoneName, Scatter | Grid> = {
 }
 
 interface StickerDef {
+  // Name used by the sticker editor (?edit) and data/stickerPlacements.json.
+  id: string
   zone: ZoneName
   design: Design
   // Id a tour step (data/tour.ts) uses to fly the camera to this sticker.
@@ -57,43 +60,44 @@ const logo = (file: string, bg = '#ffffff'): Design => ({ kind: 'logo', src: `${
 // The stickers. To change one: edit its label/colour/icon. To add: append a line with a zone.
 // To move: change its zone. Order inside a zone = left-to-right, top-to-bottom placement.
 // ---------------------------------------------------------------------------------------------
-const STICKER_LIST: StickerDef[] = [
+export const STICKER_LIST: StickerDef[] = [
   // درباره من — cheeks (camera visits these first, alternating left/right).
-  { zone: 'leftCheek', design: text('</> AMIR', '#111827', '#f5c518', 'WEB DEVELOPER'), focus: 0 },
-  { zone: 'rightCheek', design: text('CONTACT', '#26a5e4', '#ffffff', 'MAIL · TELEGRAM'), focus: 1 },
-  { zone: 'leftCheek', design: text('TOOS', '#1d3557', '#ffffff', 'UNIVERSITY'), focus: 3 },
-  { zone: 'rightCheek', design: text('MASHHAD', '#0f766e', '#ffffff', 'IRAN'), focus: 2 },
+  { id: 'amir', zone: 'leftCheek', design: text('</> AMIR', '#111827', '#f5c518', 'WEB DEVELOPER'), focus: 0 },
+  { id: 'contact', zone: 'rightCheek', design: text('CONTACT', '#26a5e4', '#ffffff', 'MAIL · TELEGRAM'), focus: 1 },
+  { id: 'toos', zone: 'leftCheek', design: text('TOOS', '#1d3557', '#ffffff', 'UNIVERSITY'), focus: 3 },
+  { id: 'mashhad', zone: 'rightCheek', design: text('MASHHAD', '#0f766e', '#ffffff', 'IRAN'), focus: 2 },
 
   // مهارت‌ها — spread over the jacket, right of the zipper.
-  { zone: 'skills', design: icon(siPhp, '#ffffff'), focus: 4 },
-  { zone: 'skills', design: icon(siLaravel), focus: 5 },
-  { zone: 'skills', design: icon(siPython), focus: 6 },
-  { zone: 'skills', design: icon(siN8n), focus: 7 },
-  { zone: 'skills', design: icon(siSelenium), focus: 8 },
-  { zone: 'skills', design: icon(siWordpress), focus: 9 },
-  { zone: 'skills', design: icon(siElementor), focus: 10 },
-  { zone: 'skills', design: icon(siOpenai, '#ffffff'), focus: 11 },
-  { zone: 'skills', design: icon(siAndroid), focus: 12 },
-  { zone: 'skills', design: icon(siJavascript, '#222222'), focus: 13 },
-  { zone: 'skills', design: text('I ♥ CODE', '#ffffff', '#e11d48') },
-  { zone: 'skills', design: icon(siTelegram) },
+  { id: 'php', zone: 'skills', design: icon(siPhp, '#ffffff'), focus: 4 },
+  { id: 'laravel', zone: 'skills', design: icon(siLaravel), focus: 5 },
+  { id: 'python', zone: 'skills', design: icon(siPython), focus: 6 },
+  { id: 'n8n', zone: 'skills', design: icon(siN8n), focus: 7 },
+  { id: 'selenium', zone: 'skills', design: icon(siSelenium), focus: 8 },
+  { id: 'wordpress', zone: 'skills', design: icon(siWordpress), focus: 9 },
+  { id: 'elementor', zone: 'skills', design: icon(siElementor), focus: 10 },
+  { id: 'openai', zone: 'skills', design: icon(siOpenai, '#ffffff'), focus: 11 },
+  { id: 'android', zone: 'skills', design: icon(siAndroid), focus: 12 },
+  { id: 'javascript', zone: 'skills', design: icon(siJavascript, '#222222'), focus: 13 },
+  { id: 'code', zone: 'skills', design: text('I ♥ CODE', '#ffffff', '#e11d48') },
+  { id: 'telegram', zone: 'skills', design: icon(siTelegram) },
 
   // سوابق کاری — logos of the companies and clients I have worked for, on the left shoulder.
-  { zone: 'companies', design: logo('barcelon.png', '#111111'), focus: 14 },
-  { zone: 'companies', design: logo('arnik.png'), focus: 15 },
-  { zone: 'companies', design: logo('vakilbashi.svg'), focus: 16 },
-  { zone: 'companies', design: logo('see5.png'), focus: 17 },
-  { zone: 'companies', design: logo('eight.svg'), focus: 18 },
-  { zone: 'companies', design: logo('artifex.svg'), focus: 19 },
-  { zone: 'companies', design: logo('atari.png'), focus: 20 },
-  { zone: 'companies', design: logo('drkamandi.png'), focus: 21 },
-  { zone: 'companies', design: logo('fruitord.png'), focus: 22 },
-  { zone: 'companies', design: logo('webello.png'), focus: 23 },
-  { zone: 'companies', design: logo('yazan.png'), focus: 24 },
-  { zone: 'companies', design: logo('iran-gomrok.png'), focus: 25 },
+  { id: 'barcelon', zone: 'companies', design: logo('barcelon.png', '#111111'), focus: 14 },
+  { id: 'arnik', zone: 'companies', design: logo('arnik.png'), focus: 15 },
+  { id: 'vakilbashi', zone: 'companies', design: logo('vakilbashi.svg'), focus: 16 },
+  { id: 'see5', zone: 'companies', design: logo('see5.png'), focus: 17 },
+  { id: 'eight', zone: 'companies', design: logo('eight.svg'), focus: 18 },
+  { id: 'artifex', zone: 'companies', design: logo('artifex.svg'), focus: 19 },
+  { id: 'atari', zone: 'companies', design: logo('atari.png'), focus: 20 },
+  { id: 'drkamandi', zone: 'companies', design: logo('drkamandi.png'), focus: 21 },
+  { id: 'fruitord', zone: 'companies', design: logo('fruitord.png'), focus: 22 },
+  { id: 'webello', zone: 'companies', design: logo('webello.png'), focus: 23 },
+  { id: 'yazan', zone: 'companies', design: logo('yazan.png'), focus: 24 },
+  { id: 'iran-gomrok', zone: 'companies', design: logo('iran-gomrok.png'), focus: 25 },
 ]
 
 export interface Sticker {
+  id: string
   design: Design
   y: number
   z: number
@@ -145,14 +149,22 @@ function grid(zone: Grid, defs: StickerDef[]) {
   })
 }
 
-function layout(): Sticker[] {
+// A sticker's spot set by hand: model-space height and sideways position, plus optional size and
+// rotation. Saved ones live in data/stickerPlacements.json (exported from the editor at ?edit).
+export type Placement = { y: number; z: number; size?: number; tilt?: number }
+
+export function layout(overrides: Record<string, Placement> = {}): Sticker[] {
   const byZone = new Map<ZoneName, StickerDef[]>()
   for (const def of STICKER_LIST) byZone.set(def.zone, [...(byZone.get(def.zone) ?? []), def])
   const out: Sticker[] = []
   for (const [name, defs] of byZone) {
     const zone = ZONES[name]
     const spots = zone.kind === 'scatter' ? scatter(zone, defs) : grid(zone, defs)
-    defs.forEach((def, i) => out.push({ design: def.design, focus: def.focus, size: def.size ?? zone.size, ...spots[i] }))
+    defs.forEach((def, i) => {
+      // A spot chosen by hand in the sticker editor wins over the automatic one.
+      const placed = overrides[def.id] ?? (PLACEMENTS as Record<string, Placement>)[def.id]
+      out.push({ id: def.id, design: def.design, focus: def.focus, size: def.size ?? zone.size, ...spots[i], ...placed })
+    })
   }
   return out
 }
@@ -172,6 +184,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 // Draws a die-cut vinyl sticker: thick white border, soft shadow, colored face.
+export type { Design }
+
 export function makeStickerTexture(design: Design): { texture: THREE.CanvasTexture; aspect: number } {
   const isText = design.kind === 'text'
   const isLogo = design.kind === 'logo'
