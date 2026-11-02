@@ -44,7 +44,7 @@ const WORK_HIGHLIGHTS: TourItem[] = [
   { title: 'چکدان', text: 'اپ مدیریت چک', href: 'https://cafebazaar.ir/app/ir.webello.check_management' },
   { title: 'چت بارسلون', text: 'پیام‌رسان سازمانی', href: 'https://chat.barcelon-group.ir/' },
   { title: 'استرومکس', text: 'سایت وردپرسی', href: 'https://estiromex.ir/' },
-  { title: 'لغات ۵۰۴ و تافل', text: 'اپ آموزشی، کافه‌بازار', href: 'https://cafebazaar.ir/app/com.faramuz.learnEn' },
+  { title: 'وکیل باشی', text: 'سایت وردپرسی', href: 'https://vakilbashi.org/' },
 ]
 
 export const TOUR: TourStep[] = [
