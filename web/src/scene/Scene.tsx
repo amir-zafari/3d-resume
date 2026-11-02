@@ -83,30 +83,68 @@ function toWorld(local: THREE.Vector3, offset: THREE.Vector3, scale: number) {
   return local.clone().applyAxisAngle(Y_AXIS, BASE_YAW).multiplyScalar(scale).add(offset)
 }
 
-function stickerPreset(point: THREE.Vector3, normal: THREE.Vector3, index: number, narrow: boolean): CameraPreset {
+const asPreset = (position: THREE.Vector3, target: THREE.Vector3, fov: number): CameraPreset => ({
+  position: position.toArray() as CameraPreset['position'],
+  target: target.toArray() as CameraPreset['target'],
+  fov,
+})
+
+// Frames one or more stickers. A single sticker gets a close-up; for a group the camera backs off
+// until the whole group fits, looking along the group's average normal.
+function stickersPreset(points: THREE.Vector3[], normals: THREE.Vector3[], index: number, narrow: boolean): CameraPreset {
+  const center = points.reduce((sum, p) => sum.add(p), new THREE.Vector3()).divideScalar(points.length)
+  const normal = normals.reduce((sum, n) => sum.add(n), new THREE.Vector3()).normalize()
+  const radius = Math.max(...points.map((p) => p.distanceTo(center)))
   if (narrow) {
-    // Phones: the tour card fills the lower half, so the sticker sits in the upper quarter.
-    // Aiming below it by (screen offset × visible half-height) puts it there at any distance.
-    const distance = 3.4
+    // Phones: the tour card fills the lower half, so the stickers sit in the upper quarter.
+    // Aiming below them by (screen offset × visible half-height) puts them there at any distance.
+    const distance = Math.max(3.4, radius * 13)
     const drop = distance * Math.tan(THREE.MathUtils.degToRad(NARROW_FOV / 2)) * NARROW_STICKER_Y
-    const target = point.clone().add(new THREE.Vector3(0, -drop, 0))
-    const position = target.clone().add(normal.clone().multiplyScalar(distance))
-    return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: NARROW_FOV }
+    const target = center.clone().add(new THREE.Vector3(0, -drop, 0))
+    return asPreset(target.clone().add(normal.clone().multiplyScalar(distance)), target, NARROW_FOV)
   }
-  // Desktop: aim to the right of the sticker so it sits left of centre, clear of the tour card.
-  const target = point.clone().add(new THREE.Vector3(0.42, 0, 0))
+  // Desktop: aim to the right of the stickers so they sit left of centre, clear of the tour card.
+  const distance = Math.max(2.3, radius * 5.6)
+  // Shifted along the camera's own right, so it works for groups seen at an angle too.
+  const right = new THREE.Vector3().crossVectors(Y_AXIS, normal).normalize()
+  const target = center.clone().add(right.multiplyScalar(points.length > 1 ? distance * 0.14 : 0.42))
   const side = index % 2 === 0 ? 0.15 : -0.15
-  const position = target.clone().add(normal.clone().multiplyScalar(2.3)).add(new THREE.Vector3(side, 0.12, 0))
-  return { position: position.toArray() as CameraPreset['position'], target: target.toArray() as CameraPreset['target'], fov: 30 }
+  const position = target.clone().add(normal.clone().multiplyScalar(distance)).add(new THREE.Vector3(side, 0.12, 0))
+  return asPreset(position, target, 30)
 }
 
-// One camera preset per tour step: the opening shot, or a close-up of that step's sticker.
+// A step back from the opening shot, turned a little to the side: the whole model at a glance.
+function farPreset(narrow: boolean): CameraPreset {
+  const direction = new THREE.Vector3(-0.42, 0.14, 1).normalize()
+  const right = new THREE.Vector3().crossVectors(Y_AXIS, direction).normalize()
+  const middle = new THREE.Vector3(0, MODEL_BOTTOM + MODEL_HEIGHT / 2, 1.6)
+  if (narrow) {
+    // Phones: the whole model above the tour card, its middle a quarter of the way down the screen.
+    const distance = 34
+    const drop = distance * Math.tan(THREE.MathUtils.degToRad(NARROW_FOV / 2)) * NARROW_STICKER_Y
+    const target = middle.clone().add(new THREE.Vector3(0, -drop, 0))
+    return asPreset(target.clone().add(direction.multiplyScalar(distance)), target, NARROW_FOV)
+  }
+  // Desktop: aim to the camera's right so the model keeps its place beside the card.
+  const distance = 26
+  const target = middle.clone().add(right.multiplyScalar(2.8))
+  return asPreset(target.clone().add(direction.multiplyScalar(distance)), target, HERO_WIDE.fov)
+}
+
+// One camera preset per tour step (see `camera` in data/tour.ts).
 function buildPresets(anchors: Anchor[], offset: THREE.Vector3, scale: number, narrow: boolean): CameraPreset[] {
   return TOUR.map((step, index) => {
-    if (step.sticker === undefined) return narrow ? HERO_NARROW : HERO_WIDE
-    const anchor = anchors.find((a) => a.focus === step.sticker)
-    if (!anchor) return FALLBACK
-    return stickerPreset(toWorld(anchor.point, offset, scale), anchor.normal.clone().applyAxisAngle(Y_AXIS, BASE_YAW), index, narrow)
+    if (step.camera === 'hero') return narrow ? HERO_NARROW : HERO_WIDE
+    if (step.camera === 'far') return farPreset(narrow)
+    const ids = step.camera
+    const picked = anchors.filter((a) => a.focus !== undefined && ids.includes(a.focus))
+    if (!picked.length) return FALLBACK
+    return stickersPreset(
+      picked.map((a) => toWorld(a.point, offset, scale)),
+      picked.map((a) => a.normal.clone().applyAxisAngle(Y_AXIS, BASE_YAW)),
+      index,
+      narrow,
+    )
   })
 }
 
@@ -293,9 +331,9 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
     p.smoothX += ((idle ? 0 : p.x) - p.smoothX) * pk
     p.smoothY += ((idle ? 0 : p.y) - p.smoothY) * pk
 
-    // Full head-follow on the opening shot; calmer during sticker close-ups.
+    // Full head-follow on the wide shots; calmer during sticker close-ups.
     const k = 1 - Math.pow(0.02, delta)
-    const amp = frameRef.current === 0 ? 1 : 0.12
+    const amp = typeof TOUR[frameRef.current]?.camera === 'string' ? 1 : 0.12
     const idleYaw = Math.sin(t * 0.37) * 0.07 + Math.sin(t * 0.91) * 0.025
     const idlePitch = Math.sin(t * 0.53) * 0.03
     head.rotation.y += (BASE_YAW + (p.smoothX * 0.18 + idleYaw) * amp - head.rotation.y) * k
