@@ -89,12 +89,17 @@ const asPreset = (position: THREE.Vector3, target: THREE.Vector3, fov: number): 
   fov,
 })
 
-// Frames one or more stickers. A single sticker gets a close-up; for a group the camera backs off
-// until the whole group fits, looking along the group's average normal.
-function stickersPreset(points: THREE.Vector3[], normals: THREE.Vector3[], index: number, narrow: boolean): CameraPreset {
-  const center = points.reduce((sum, p) => sum.add(p), new THREE.Vector3()).divideScalar(points.length)
+const centerOf = (points: THREE.Vector3[]) => points.reduce((sum, p) => sum.add(p), new THREE.Vector3()).divideScalar(points.length)
+const radiusOf = (points: THREE.Vector3[]) => {
+  const center = centerOf(points)
+  return Math.max(...points.map((p) => p.distanceTo(center)))
+}
+
+// Frames one or more stickers, looking along their average normal. A single sticker gets a
+// close-up; a group is seen from a distance set by `radius` (see buildPresets).
+function stickersPreset(points: THREE.Vector3[], normals: THREE.Vector3[], radius: number, index: number, narrow: boolean): CameraPreset {
+  const center = centerOf(points)
   const normal = normals.reduce((sum, n) => sum.add(n), new THREE.Vector3()).normalize()
-  const radius = Math.max(...points.map((p) => p.distanceTo(center)))
   if (narrow) {
     // Phones: the tour card fills the lower half, so the stickers sit in the upper quarter.
     // Aiming below them by (screen offset × visible half-height) puts them there at any distance.
@@ -113,38 +118,24 @@ function stickersPreset(points: THREE.Vector3[], normals: THREE.Vector3[], index
   return asPreset(position, target, 30)
 }
 
-// A step back from the opening shot, turned a little to the side: the whole model at a glance.
-function farPreset(narrow: boolean): CameraPreset {
-  const direction = new THREE.Vector3(-0.42, 0.14, 1).normalize()
-  const right = new THREE.Vector3().crossVectors(Y_AXIS, direction).normalize()
-  const middle = new THREE.Vector3(0, MODEL_BOTTOM + MODEL_HEIGHT / 2, 1.6)
-  if (narrow) {
-    // Phones: the whole model above the tour card, its middle a quarter of the way down the screen.
-    const distance = 34
-    const drop = distance * Math.tan(THREE.MathUtils.degToRad(NARROW_FOV / 2)) * NARROW_STICKER_Y
-    const target = middle.clone().add(new THREE.Vector3(0, -drop, 0))
-    return asPreset(target.clone().add(direction.multiplyScalar(distance)), target, NARROW_FOV)
-  }
-  // Desktop: aim to the camera's right so the model keeps its place beside the card.
-  const distance = 26
-  const target = middle.clone().add(right.multiplyScalar(2.8))
-  return asPreset(target.clone().add(direction.multiplyScalar(distance)), target, HERO_WIDE.fov)
-}
-
 // One camera preset per tour step (see `camera` in data/tour.ts).
 function buildPresets(anchors: Anchor[], offset: THREE.Vector3, scale: number, narrow: boolean): CameraPreset[] {
-  return TOUR.map((step, index) => {
-    if (step.camera === 'hero') return narrow ? HERO_NARROW : HERO_WIDE
-    if (step.camera === 'far') return farPreset(narrow)
+  const shots = TOUR.map((step) => {
+    if (step.camera === 'hero') return null
     const ids = step.camera
     const picked = anchors.filter((a) => a.focus !== undefined && ids.includes(a.focus))
-    if (!picked.length) return FALLBACK
-    return stickersPreset(
-      picked.map((a) => toWorld(a.point, offset, scale)),
-      picked.map((a) => a.normal.clone().applyAxisAngle(Y_AXIS, BASE_YAW)),
-      index,
-      narrow,
-    )
+    return {
+      points: picked.map((a) => toWorld(a.point, offset, scale)),
+      normals: picked.map((a) => a.normal.clone().applyAxisAngle(Y_AXIS, BASE_YAW)),
+    }
+  })
+  // Every group shot comes in as close as the tightest group (the companies), so the stickers
+  // look the same size from step to step; a wider group simply runs past the edges.
+  const groupRadius = Math.min(...shots.flatMap((shot) => (shot && shot.points.length > 1 ? [radiusOf(shot.points)] : [])))
+  return shots.map((shot, index) => {
+    if (!shot) return narrow ? HERO_NARROW : HERO_WIDE
+    if (!shot.points.length) return FALLBACK
+    return stickersPreset(shot.points, shot.normals, shot.points.length > 1 ? groupRadius : 0, index, narrow)
   })
 }
 
