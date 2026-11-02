@@ -6,6 +6,8 @@ import Scene from './scene/Scene'
 import NoiseOverlay from './ui/NoiseOverlay'
 import { ResumePreview } from './ui/ResumePreview'
 import Tour from './ui/Tour'
+import StickerEditor from './ui/StickerEditor'
+import { EDITING } from './editor'
 
 function WebGLFallback() {
   return (
@@ -37,7 +39,7 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       {/* 固定的 3D 背景 */}
-      <div className="scene-bg">
+      <div className={`scene-bg${EDITING ? ' is-editing' : ''}`}>
         <Canvas
           shadows={lowPowerRendering ? false : { type: THREE.PCFShadowMap }}
           dpr={lowPowerRendering ? 1 : [1, 1.5]}
@@ -69,14 +71,16 @@ export default function App() {
           <span>سایت · فروشگاه اینترنتی · اپ اندروید</span>
         </div>
       </div>
-      <button className="resume-preview-trigger" type="button" onClick={() => setPreviewOpen(true)}>
-        رزومه کامل
-      </button>
+      {!EDITING && (
+        <button className="resume-preview-trigger" type="button" onClick={() => setPreviewOpen(true)}>
+          رزومه کامل
+        </button>
+      )}
 
       {/* 全屏胶片噪点蒙层（multiply 混合） */}
       {!lowPowerRendering && <NoiseOverlay />}
 
-      <Tour onFullResume={() => setPreviewOpen(true)} />
+      {EDITING ? <StickerEditor /> : <Tour onFullResume={() => setPreviewOpen(true)} />}
       <ResumePreview open={previewOpen} onClose={() => setPreviewOpen(false)} />
     </MotionConfig>
   )

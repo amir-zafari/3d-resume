@@ -1,13 +1,14 @@
 import { Suspense, useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import { Bloom, DepthOfField, EffectComposer, SMAA } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import Env from './Env'
 import { TOUR } from '../data/tour'
 import { useTour } from '../store'
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'
-import { STICKERS, makeStickerTexture } from './stickers'
+import { layout, makeStickerTexture, type Sticker } from './stickers'
+import { EDITING, useEditor } from '../editor'
 import { createPaintedEyes, paintEye } from './eyes'
 import { boot, useModelUrl } from './modelSource'
 
@@ -43,25 +44,25 @@ function firstMesh(root: THREE.Object3D): THREE.Mesh | null {
   return found
 }
 
-// Ray-casts each sticker spot onto the face from the front and projects it as a decal.
-function applyStickers(root: THREE.Object3D, mesh: THREE.Mesh): Anchor[] {
-  root.updateMatrixWorld(true)
+// Ray-casts a sticker's spot onto the model from the front and projects it there as a decal.
+// `material` reuses an existing sticker's texture when the editor moves it.
+function makeDecal(mesh: THREE.Mesh, sticker: Sticker, material?: THREE.MeshStandardMaterial) {
   const raycaster = new THREE.Raycaster()
   const helper = new THREE.Object3D()
   const forward = new THREE.Vector3(1, 0, 0)
-  const anchors: Anchor[] = []
-  for (const sticker of STICKERS) {
-    raycaster.set(new THREE.Vector3(2, sticker.y, sticker.z), new THREE.Vector3(-1, 0, 0))
-    const hit = raycaster.intersectObject(mesh, false)[0]
-    if (!hit?.face) continue
-    const normal = hit.face.normal.clone().transformDirection(mesh.matrixWorld).lerp(forward, 0.3).normalize()
-    helper.position.copy(hit.point)
-    helper.lookAt(hit.point.clone().add(normal))
-    helper.rotateZ(sticker.tilt)
-    const { texture, aspect } = makeStickerTexture(sticker.design)
-    const geometry = new DecalGeometry(mesh, hit.point, helper.rotation, new THREE.Vector3(sticker.size, sticker.size / aspect, 0.06))
-    const material = new THREE.MeshStandardMaterial({
-      map: texture,
+  raycaster.set(new THREE.Vector3(2, sticker.y, sticker.z), new THREE.Vector3(-1, 0, 0))
+  const hit = raycaster.intersectObject(mesh, false)[0]
+  if (!hit?.face) return null
+  const normal = hit.face.normal.clone().transformDirection(mesh.matrixWorld).lerp(forward, 0.3).normalize()
+  helper.position.copy(hit.point)
+  helper.lookAt(hit.point.clone().add(normal))
+  helper.rotateZ(sticker.tilt)
+  let aspect: number
+  if (!material) {
+    const made = makeStickerTexture(sticker.design)
+    aspect = made.aspect
+    material = new THREE.MeshStandardMaterial({
+      map: made.texture,
       transparent: true,
       alphaTest: 0.05,
       depthWrite: false,
@@ -70,13 +71,29 @@ function applyStickers(root: THREE.Object3D, mesh: THREE.Mesh): Anchor[] {
       roughness: 0.32,
       metalness: 0,
     })
-    const decal = new THREE.Mesh(geometry, material)
-    decal.renderOrder = 2
-    decal.receiveShadow = true
-    root.add(decal)
-    anchors.push({ point: hit.point.clone(), normal, focus: sticker.focus })
+  } else {
+    const image = material.map!.image as HTMLCanvasElement
+    aspect = image.width / image.height
   }
-  return anchors
+  const geometry = new DecalGeometry(mesh, hit.point, helper.rotation, new THREE.Vector3(sticker.size, sticker.size / aspect, 0.06))
+  const decal = new THREE.Mesh(geometry, material)
+  decal.renderOrder = 2
+  decal.receiveShadow = true
+  return { decal, point: hit.point.clone(), normal }
+}
+
+function applyStickers(root: THREE.Object3D, mesh: THREE.Mesh, stickers: Sticker[]) {
+  root.updateMatrixWorld(true)
+  const anchors: Anchor[] = []
+  const decals = new Map<string, THREE.Mesh>()
+  for (const sticker of stickers) {
+    const made = makeDecal(mesh, sticker)
+    if (!made) continue
+    root.add(made.decal)
+    decals.set(sticker.id, made.decal)
+    anchors.push({ point: made.point, normal: made.normal, focus: sticker.focus })
+  }
+  return { anchors, decals }
 }
 
 function toWorld(local: THREE.Vector3, offset: THREE.Vector3, scale: number) {
@@ -177,9 +194,80 @@ function Lights({ lowPower }: { lowPower: boolean }) {
   )
 }
 
+// In the sticker editor (?edit): a click on the model puts the selected sticker there, and every
+// change in the editor moves that sticker's decal at once.
+function useStickerEditing(model: THREE.Object3D, mesh: THREE.Mesh | null, initial: Sticker[], decals: Map<string, THREE.Mesh>) {
+  const gl = useThree((state) => state.gl)
+  const camera = useThree((state) => state.camera)
+  const current = useRef(initial)
+
+  useEffect(() => {
+    if (!EDITING || !mesh) return
+    // Start close enough to see the stickers.
+    const perspective = camera as THREE.PerspectiveCamera
+    perspective.position.set(0, -0.8, 13)
+    perspective.fov = 30
+    perspective.updateProjectionMatrix()
+
+    const unsubscribe = useEditor.subscribe((state) => {
+      const next = layout(state.edits)
+      next.forEach((sticker, i) => {
+        const before = current.current[i]
+        if (before && before.y === sticker.y && before.z === sticker.z && before.size === sticker.size && before.tilt === sticker.tilt) return
+        const old = decals.get(sticker.id)
+        // Decals are built in the model's own space, as on load: lift it out of the scene's
+        // scale and turn for a moment.
+        const parent = model.parent
+        parent?.remove(model)
+        model.updateMatrixWorld(true)
+        const made = makeDecal(mesh, sticker, old?.material as THREE.MeshStandardMaterial | undefined)
+        parent?.add(model)
+        model.updateMatrixWorld(true)
+        if (!made) return
+        if (old) {
+          old.removeFromParent()
+          old.geometry.dispose()
+        }
+        model.add(made.decal)
+        decals.set(sticker.id, made.decal)
+      })
+      current.current = next
+    })
+
+    // A click (not a drag, which turns the model) on the model places the selected sticker.
+    const raycaster = new THREE.Raycaster()
+    let down: { x: number; y: number } | null = null
+    const onDown = (event: PointerEvent) => {
+      down = { x: event.clientX, y: event.clientY }
+    }
+    const onUp = (event: PointerEvent) => {
+      if (!down || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 6) return
+      down = null
+      const { selected, update } = useEditor.getState()
+      if (!selected) return
+      const rect = gl.domElement.getBoundingClientRect()
+      const ndc = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1)
+      raycaster.setFromCamera(ndc, camera)
+      const hit = raycaster.intersectObject(mesh, false)[0]
+      if (!hit) return
+      const local = model.worldToLocal(hit.point.clone())
+      const base = current.current.find((sticker) => sticker.id === selected)
+      if (!base) return
+      update(selected, { y: local.y, z: local.z }, { y: base.y, z: base.z, size: base.size, tilt: base.tilt })
+    }
+    gl.domElement.addEventListener('pointerdown', onDown)
+    gl.domElement.addEventListener('pointerup', onUp)
+    return () => {
+      unsubscribe()
+      gl.domElement.removeEventListener('pointerdown', onDown)
+      gl.domElement.removeEventListener('pointerup', onUp)
+    }
+  }, [gl, camera, model, mesh, decals])
+}
+
 function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<THREE.Vector3>; frameRef: MutableRefObject<number> }) {
   const { scene } = useGLTF(useModelUrl())
-  const { model, offset, scale, wide, narrow, eyes, mesh } = useMemo(() => {
+  const { model, offset, scale, wide, narrow, eyes, mesh, stickers, decals } = useMemo(() => {
     const clone = scene.clone(true)
     clone.traverse((object: THREE.Object3D) => {
       if ((object as THREE.Mesh).isMesh) {
@@ -196,7 +284,8 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
     const mesh = firstMesh(clone)
     // Tripo exports metalness 1 scaled by a noisy map, which turns skin and eyes into glassy glare.
     if (mesh) (mesh.material as THREE.MeshStandardMaterial).metalness = 0
-    const anchors = mesh ? applyStickers(clone, mesh) : []
+    const stickers = layout(EDITING ? useEditor.getState().edits : {})
+    const { anchors, decals } = mesh ? applyStickers(clone, mesh, stickers) : { anchors: [], decals: new Map<string, THREE.Mesh>() }
     const eyes = mesh ? createPaintedEyes(mesh) : []
     return {
       model: clone,
@@ -204,10 +293,14 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
       scale,
       eyes,
       mesh,
+      stickers,
+      decals,
       wide: buildPresets(anchors, offset, scale, false),
       narrow: buildPresets(anchors, offset, scale, true),
     }
   }, [scene])
+
+  useStickerEditing(model, mesh, stickers, decals)
 
   // Keep the loading screen up until the GPU is really ready. three.js otherwise compiles shaders and
   // uploads textures lazily, and on a real GPU the driver finishes that work in the background: the
@@ -250,6 +343,8 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
   const flight = useRef({ step: -1, start: 0, fromPosition: new THREE.Vector3(), fromTarget: new THREE.Vector3(), fromFov: 30 })
 
   useFrame((state, delta) => {
+    // The editor moves the camera with orbit controls instead.
+    if (EDITING) return
     const camera = get().camera as THREE.PerspectiveCamera
     const presets = camera.aspect < 0.85 ? narrow : wide
     const step = useTour.getState().step
@@ -324,7 +419,8 @@ function StaticCharacter({ focusRef, frameRef }: { focusRef: MutableRefObject<TH
 
     // Full head-follow on the wide shots; calmer during sticker close-ups.
     const k = 1 - Math.pow(0.02, delta)
-    const amp = typeof TOUR[frameRef.current]?.camera === 'string' ? 1 : 0.12
+    // Still while editing, so clicks land where the stickers are.
+    const amp = EDITING ? 0 : typeof TOUR[frameRef.current]?.camera === 'string' ? 1 : 0.12
     const idleYaw = Math.sin(t * 0.37) * 0.07 + Math.sin(t * 0.91) * 0.025
     const idlePitch = Math.sin(t * 0.53) * 0.03
     head.rotation.y += (BASE_YAW + (p.smoothX * 0.18 + idleYaw) * amp - head.rotation.y) * k
@@ -418,7 +514,7 @@ export default function Scene({ lowPower }: { lowPower: boolean }) {
         <Lights lowPower={lowPower} />
         <StaticCharacter focusRef={focusRef} frameRef={frameRef} />
       </Suspense>
-      <Post focusRef={focusRef} lowPower={lowPower} />
+      {EDITING ? <OrbitControls makeDefault target={[0, -1.2, 1]} minDistance={2} maxDistance={30} /> : <Post focusRef={focusRef} lowPower={lowPower} />}
     </>
   )
 }

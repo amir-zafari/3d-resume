@@ -446,3 +446,42 @@ html[lang='fa'] body, html[lang='fa'] body * {
   .tour-nav { margin-top: 10px; padding-top: 10px; }
   .hero-chrome .hero-meta span:not(.hm-name) { display: none; }
 }
+
+/* ---------- Sticker editor (?edit) ---------- */
+.scene-bg.is-editing { pointer-events: auto; right: 320px; }
+.sticker-editor {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 320px;
+  padding: 18px 16px;
+  overflow-y: auto;
+  background: #1d221c;
+  color: #f4f1ea;
+  font-size: 13.5px;
+}
+.sticker-editor h2 { font-size: 18px; }
+.editor-help { display: grid; gap: 4px; padding-right: 18px; color: var(--muted); line-height: 1.7; }
+.editor-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.editor-item { display: grid; place-items: center; aspect-ratio: 1; padding: 3px; border: 2px solid transparent; border-radius: 10px; background: rgba(255, 255, 255, 0.06); cursor: pointer; }
+.editor-item.is-edited { background: rgba(216, 195, 155, 0.18); }
+.editor-item.is-selected { border-color: var(--accent); }
+.editor-thumb canvas { display: block; width: 100%; height: auto; }
+.editor-controls { display: grid; gap: 10px; padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
+.editor-controls label { display: grid; gap: 4px; }
+.editor-controls input { width: 100%; accent-color: var(--accent); }
+.editor-hint { color: var(--muted); }
+.editor-export { display: grid; gap: 8px; margin-top: auto; }
+.editor-export textarea { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #11140f; color: #cfd8c8; font: 11px/1.4 ui-monospace, monospace; resize: vertical; }
+.editor-primary { padding: 11px; border: 0; border-radius: 999px; background: var(--accent); color: #1d221c; font: inherit; font-weight: 700; cursor: pointer; }
+.editor-primary:disabled { opacity: 0.45; cursor: default; }
+.editor-link { justify-self: start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+@media (max-width: 700px) {
+  .scene-bg.is-editing { right: 0; height: 55vh; }
+  .sticker-editor { top: 55vh; width: 100%; }
+}
